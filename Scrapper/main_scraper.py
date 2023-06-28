@@ -6,9 +6,11 @@ import csv
 from DataObject import DataObject
 from LocalState import LocalState
 from unidecode import unidecode
-
+import json
+from QueueConnectionModule import QueueConnectionModule
 
 localState = LocalState()
+queue = QueueConnectionModule()
 
 def parse_news_page(data_object, link):
     page = requests.get(link)
@@ -34,6 +36,7 @@ def parse_news_page(data_object, link):
 
 def parse_table(table):
     rows = table.find_all('tr')
+    i = 0
     for row in rows:
         cols = row.find_all('td')
         if len(cols) >= 2 and not localState.already_parsed(cols[1].find('a')['href']):
@@ -55,7 +58,10 @@ def parse_table(table):
             print(cols[1].find('a')['href'])
             parse_news_page(data_object, cols[1].find('a')['href'])
             localState.append(data_object)
-
+            queue.send_message(json.dumps(data_object.json_encoder()))
+        if i > 3:
+            exit(0)
+        i = i + 1
 
 def crawl_summary_page(p):
     print(p)
