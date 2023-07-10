@@ -60,8 +60,8 @@ def parse_table(table):
             queue.send_message(json.dumps(data_object.json_encoder()))
             i = i + 1
         print(i)
-        if i > 0:
-            exit(0)
+        #if i > 0:
+        #    exit(0)
 
 
 def crawl_summary_page(p):
