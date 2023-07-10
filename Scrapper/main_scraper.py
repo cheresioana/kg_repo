@@ -45,8 +45,7 @@ def parse_table(table):
 
             #here I need to remove because it's standard to add if it is either fake news or dezinformare
             statement = unidecode(cols[1].text.strip())
-            statement = statement.replace('FAKE NEWS: ', '')
-            statement = statement.replace('DEZINFORMARE:', '')
+            statement = ' '.join(statement.split(':')[1:])
             data_object.statement = statement
 
             # here I check if the 2nd column has a link for the source of the fake statement
@@ -59,9 +58,11 @@ def parse_table(table):
             parse_news_page(data_object, cols[1].find('a')['href'])
             localState.append(data_object)
             queue.send_message(json.dumps(data_object.json_encoder()))
-        if i > 3:
+            i = i + 1
+        print(i)
+        if i > 0:
             exit(0)
-        i = i + 1
+
 
 def crawl_summary_page(p):
     print(p)

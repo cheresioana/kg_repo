@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import datetime
 
 
 class DataObject:
@@ -12,7 +12,7 @@ class DataObject:
         self.raw_page = ''
         self.debunking_link = ''
         self.crawler_origin = crawler_origin
-        self.crawled_date = date.today()
+        self.crawled_date = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         self.narrative = []
 
     def __str__(self):
@@ -39,4 +39,5 @@ class DataObject:
             'raw_page': str(self.raw_page),
             'debunking_link': self.debunking_link,
             'crawler_origin': self.crawler_origin,
+            'crawled_date': self.crawled_date,
             'narrative': self.narrative}
