@@ -18,12 +18,12 @@ class LocalState:
         if not os.path.isfile(csv_filename):
             with open(csv_filename, 'w', newline='') as csvfile:
                 headers = list(entry.final_object.keys())
-                print(f'Headers: {headers}')
+                #print(f'Headers: {headers}')
                 writer = csv.writer(csvfile)
                 writer.writerow(headers)
                 writer.writerow(list(entry.final_object.values()))
         else:
             with open(csv_filename, 'a', newline='') as csvfile:
                 writer = csv.writer(csvfile)
-                print(f'Headers: {list(entry.final_object.values())}')
+                #print(f'Headers: {list(entry.final_object.values())}')
                 writer.writerow(list(entry.final_object.values()))

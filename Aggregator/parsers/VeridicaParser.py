@@ -20,6 +20,8 @@ class VeridicaParser(BaseParser2):
 
         if not (payload.get('verdict') is None):
             self.final_object['verdict'] = payload['verdict']
+        if not (payload.get('narrative') is None):
+            self.final_object['narrative'] = [translator.translate(unidecode(x), src='ro').text for x in payload['narrative']]
         if not (payload.get('speaker') is None):
             self.final_object['speaker'] = payload['speaker']
         if not (payload.get('speaker_job_title') is None):
@@ -35,5 +37,8 @@ class VeridicaParser(BaseParser2):
             self.final_object['debunk_date'] = payload['date']
         if not (payload.get('spread_country') is None):
             self.final_object['spread_location'] = payload['spread_country']
+        if not (payload.get('fake_news_content') is None):
+            self.final_object['fake_news_content'] = translator.translate(payload['fake_news_content'],
+                                                                              src='ro').text
 
         return self

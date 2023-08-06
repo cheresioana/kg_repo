@@ -22,9 +22,13 @@ class QueueConnectionModule:
         payload = json.loads(body)
         payload['received_date'] = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         self.local_state.append_message(json.dumps(payload, indent=4))
-        parsed_object = self.parser.parse(payload)
-        self.local_state.save_parsed_entry(parsed_object)
-        self.convertor.convert_csv('data.csv')
+        try:
+            parsed_object = self.parser.parse(payload)
+            self.local_state.save_parsed_entry(parsed_object)
+            self.convertor.convert_csv('data.csv')
+        except Exception as e:
+            print(f"Error occurred for: {payload}")
+
 
     def listen(self):
         self.channel.basic_consume(queue='crawlers',

@@ -8,13 +8,15 @@ class MasterParser:
 
     def parse(self, payload):
         if payload['crawler_name'] == 'veridica':
-            print('Veridica')
+            #print('Veridica')
             parser = VeridicaParser()
             parsed = parser.parse(payload)
         return self.verify(parsed)
 
     def verify(self, payload):
-        if not payload.final_object['entities']:
-            payload.final_object['entities'] = self.entity_extractor.extract_entities(payload.final_object['statement'])
-        print(payload.final_object)
+        if not payload.final_object['title_entities']:
+            payload.final_object['title_entities'] = self.entity_extractor.extract_entities(payload.final_object['statement'])
+        if not payload.final_object['news_entities']:
+            payload.final_object['news_entities'] = self.entity_extractor.extract_entities(payload.final_object['fake_news_content'])
+        #print(payload.final_object)
         return payload

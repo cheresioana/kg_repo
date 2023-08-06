@@ -3,32 +3,36 @@ import itertools
 import pandas as pd
 import re
 
+
 class BaseParser2:
     def __init__(self):
         self.final_object = {
             'id': BaseParser2._get_next_id(),
-            'statement' : '',
+            'statement': '',
+            'narrative': [],
             # can be: true, mostly-true, half-true, 'mostly-false', 'false'
             'verdict': False,
             'topics': [],
-            'entities': [],
+            'title_entities': [],
+            'news_entities': [],
             'speaker': '',
-            'speaker_job_title':'',
+            'speaker_job_title': '',
             # the person to whom is attributed the statement
-            'media_channel':'',  # facebook, twitter, instagram, tiktok, other
-            'likes':'',
-            'comments':'',
-            'shares':'',
+            'media_channel': '',  # facebook, twitter, instagram, tiktok, other
+            'likes': '',
+            'comments': '',
+            'shares': '',
             'fake_news_source': '',
-            'debunk_sources':'',  # links separated through ;
-            'journalist':'',
-            'debunk_date':'',
-            'subject':'',
-            'spread_location':'',
-            'owner':'',
-            'debunk_link':'',
+            'debunk_sources': '',  # links separated through ;
+            'journalist': '',
+            'debunk_date': '',
+            'subject': '',
+            'spread_location': '',
+            'owner': '',
+            'debunk_link': '',
             'summary_explanation': '',
             'full_explanation': '',
+            'fake_news_content': ''
 
         }
 
@@ -47,7 +51,3 @@ class BaseParser2:
 
     def parse(self, pyload):
         pass
-
-
-
-

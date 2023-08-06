@@ -4,7 +4,7 @@ import re
 class BaseParser:
     def __init__(self, df):
         self.target_df = df
-        self.__final_df = pd.DataFrame(columns=['statement',
+        self.__final_df = pd.DataFrame(columns=['statement', 'narrative',
                                               'verdict',
                                               # can be: true, mostly-true, half-true, 'mostly-false', 'false'
                                               'speaker', 'speaker_job_title',
@@ -15,7 +15,7 @@ class BaseParser:
                                               'news_sources', 'debunk_sources',  # links separated through ;
                                               'journalist_id', 'debunk_date',
                                               'subject', 'location',
-                                              'owner', 'debunk_link'
+                                              'owner', 'debunk_link', 'fake_news_content'
                                               ])
 
     def set_owner(self, owner):
