@@ -86,12 +86,12 @@ def get_keywords(row, title_entities):
 if __name__ == '__main__':
     df = pd.read_csv('data.csv')
     connector = NeoConnector()
-    connector.get_similar(417)
+    '''connector.get_similar(417)
     exit(0)
     #print(df.iloc[23])
     row = df.iloc[48]
     connector.set_similarity()
-    connector.select_communities()
+    connector.select_communities()'''
 
     '''entities = enrich_by_nlp(row)
     print(row)
@@ -110,41 +110,8 @@ if __name__ == '__main__':
 
         #news_entities = eval(row['news_entities'])
         connector.insert_statement(row)
-        connector.insert_statement_entities(row, title_entities)
-        connector.insert_statement_entities(row, keywords)
+        connector.insert_statement_entities(row['id'], title_entities)
+        connector.insert_statement_entities(row['id'], keywords)
         #exit(0)
         #connector.insert_statement_entities(row, news_entities)
-    connector.set_similarity()
-
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
-'''
-import spacy
-import pytextrank
-from neo4j import GraphDatabase, basic_auth
- 
-QUERY_INGEST = """
-  USE news
-  MATCH (n:Document {id: "business_173"})
-  RETURN id(n) AS id, n.title AS title, n.text AS text
-"""
- 
-driver = GraphDatabase.driver(
-  'bolt://localhost:7687', auth=basic_auth('neo4j', 'neo')
-)
- 
-nlp = spacy.load("en_core_web_sm")
- 
-nlp.add_pipe("textrank")
- 
-with driver.session() as session:
-    documents = session.run(QUERY_INGEST).data()
-    print(f"Retrieved {len(documents)} documents")
- 
-processed = nlp(documents[0]['title'] + ".\n\n"
-➥   + documents[0]['text'])
-keywords = [{'name': cleanse_keyword(x.text), 'rank': x.rank} 
-➥   for x in processed._.phrases if len(x.text) > 1][:30]
-print(keywords)
-
-'''
+    #connector.set_similarity()

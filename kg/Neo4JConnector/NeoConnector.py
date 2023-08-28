@@ -43,46 +43,60 @@ class NeoConnector:
         with self.driver.session() as session:
             session.run(INSERT_STATEMENT, inputs=row.to_dict())
 
-    def insert_statement_entities(self, row, entities):
+    def insert_search_statement(self, statement):
+        INSERT_STATEMENT = """USE news
+            
+            MERGE (n:Fake_Statement {statement: $input}) 
+            SET n.query = 1, n.id = ID(n)
+            RETURN ID(n) as id   
+        """
+        with self.driver.session() as session:
+            records, summary, keys = self.driver.execute_query(INSERT_STATEMENT, input=statement)
+            if len(records) > 0:
+                return records[0]['id']
+        return None
+
+    def insert_statement_entities(self, doc_id, entities):
         entity_keys = list(entities.keys())
         for key in entity_keys:
             if key == 'PERSON':
-                self.__insert_person_entities(row, entities[key])
+                self.__insert_person_entities(doc_id, entities[key])
             else:
-                self.insert_simple_entity(row, entities, key)
+                self.insert_simple_entity(doc_id, entities, key)
 
-    def insert_simple_entity(self, row, entities, key):
+    def insert_simple_entity(self, doc_id, entities, key):
         QUERY_ENTITIES = """USE news
-            UNWIND $inputs AS doc
             UNWIND $ent AS ents
 
-            MATCH (n:Fake_Statement {id: doc.id})
+            MATCH (n:Fake_Statement {id: $doc_id})
              FOREACH(entity IN $ent |
                 MERGE (e:Entity {name: entity})
-                MERGE (n)-[:""" + self.dic_key[key] + """]->(e)
+               
                 MERGE (n)-[:HAS_KEYWORD]->(e)
             )"""
-
+            #Missing  MERGE (n)-[:""" + self.dic_key[key] + """]->(e)
         with self.driver.session() as session:
-            session.run(QUERY_ENTITIES, ent=entities[key], key=key, inputs=row.to_dict())
+            session.run(QUERY_ENTITIES, ent=entities[key], key=key, doc_id=doc_id)
 
     def __get_label_query(self, entity):
         return 'SELECT ?entity ?entityLabel ?id WHERE\n{?entity rdfs:label "' + str(
             entity) + '"@en.\n?entity wdt:P31 wd:Q5. \n SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }\n}'
 
-    def __insert_person(self, row, official_name, uri='', status='unkown'):
+    def __insert_person(self, doc_id, official_name, uri='', status='unkown'):
         QUERY_PERSON = """USE news
-            UNWIND $inputs AS doc
-            MATCH (n:Fake_Statement {id: doc.id})
+            
+            MATCH (n:Fake_Statement {id: $doc_id})
                 MERGE (e:Person {name: $name, status: $status, uri: $uri})
-                MERGE (n)-[:MENTIONS_PERSON]->(e)
+                
                 MERGE (n)-[:HAS_KEYWORD]->(e)
                 """
+
+        #Missing MERGE (n)-[:MENTIONS_PERSON]->(e)
         with self.driver.session() as session:
-            session.run(QUERY_PERSON, inputs=row.to_dict(), name=official_name,
+            session.run(QUERY_PERSON, doc_id=doc_id, name=official_name,
                         status=status, uri=uri)
 
-    def __make_query(self, query, row):
+    def __make_query(self, query):
         try_index = 0
         response = requests.get(query, params={'format': "json"})
         while response.status_code != 200 and try_index < 5:
@@ -93,11 +107,10 @@ class NeoConnector:
             print("error for request")
             print(response)
             print(response.text)
-            print(row)
             return None
         return response.json()['results']['bindings']
 
-    def __insert_search_person(self, row, entity):
+    def __insert_search_person(self, doc_id, entity):
         SPARQL_QUERY_LIST_MATCHINGS = """
             SELECT * WHERE {
               SERVICE wikibase:mwapi {
@@ -111,7 +124,7 @@ class NeoConnector:
               ?item wdt:P31 wd:Q5
             } ORDER BY ASC(?num) LIMIT 20
             """
-        jsonResponse = self.__make_query(self.wikidata_query + SPARQL_QUERY_LIST_MATCHINGS, row)
+        jsonResponse = self.__make_query(self.wikidata_query + SPARQL_QUERY_LIST_MATCHINGS)
         if jsonResponse and len(jsonResponse) > 0:
             entity_url = jsonResponse[0]['item']['value']
             path = urlparse(entity_url).path
@@ -122,18 +135,18 @@ class NeoConnector:
                               FILTER(LANG(?label) = "en") .
                             }}
                             """
-            jsonResponse = self.__make_query(self.wikidata_query + SPARQL_QUERY6, row)
+            jsonResponse = self.__make_query(self.wikidata_query + SPARQL_QUERY6)
             # response = requests.get(, params={'format': "json"})
             try:
                 official_name = jsonResponse[0]['label']['value']
                 uri = jsonResponse[0]['label']['value']
-                self.__insert_person(row, official_name, uri, status="known")
+                self.__insert_person(doc_id, official_name, uri, status="known")
                 return 1
             except:
                 return -1
         return -1
 
-    def __insert_person_entities(self, row, entities):
+    def __insert_person_entities(self, doc_id, entities):
         for entity in entities:
             my_entity = entity
             if "elensk" in entity:
@@ -145,11 +158,11 @@ class NeoConnector:
                     # here I try exact matching
                     official_name = response.json()['results']['bindings'][0]['entityLabel']['value']
                     uri = response.json()['results']['bindings'][0]['entity']['value']
-                    self.__insert_person(row, official_name, uri, status="known")
+                    self.__insert_person(doc_id, official_name, uri, status="known")
                 except:
                     # in case there is no exact matching I use wikidata search engine
                     print(f'Searching for entity:{entity}')
-                    self.__insert_search_person(row, entity)
+                    self.__insert_search_person(doc_id, entity)
             else:
                 print(f'The request failed for entity:{entity}')
 
@@ -246,8 +259,45 @@ class NeoConnector:
         return p, k, r, rel_cnt
         '''
         with self.driver.session() as session:
-            response = session.run(GET_DATA_QUERY)
-            print(response)
+            session.run(CREATE_PROJECTION_QUERY)
+
+    def run_louvain_algorithm(self):
+        DROP_IF_EXISTS = '''
+        USE news
+        CALL gds.graph.drop('myGraph', false) YIELD graphName;
+        '''
+        with self.driver.session() as session:
+            records, summary, keys = self.driver.execute_query(DROP_IF_EXISTS)
+            print(records)
+            print(summary)
+
+        CREATE_PROJECTION_QUERY = '''
+        USE news
+       CALL gds.graph.project(
+        'myGraph',
+        'Fake_Statement',
+        {
+            SIMILAR_TO: {
+                orientation: 'UNDIRECTED'
+            }
+        }
+        )'''
+        with self.driver.session() as session:
+            records, summary, keys = self.driver.execute_query(CREATE_PROJECTION_QUERY)
+            print(records)
+            print(summary)
+
+
+        WRITE_COMMUNITY = '''
+        USE news
+        CALL gds.louvain.write('myGraph', { writeProperty: 'community' })
+        YIELD communityCount, modularity, modularities
+        '''
+        with self.driver.session() as session:
+            records, summary, keys = self.driver.execute_query(WRITE_COMMUNITY)
+            print(records)
+            print(summary)
+
 
 
     def _get_statement_nodes(self):
@@ -262,7 +312,7 @@ class NeoConnector:
             )
             statements = [p.data() for p in records]
             return statements
-    def _get_top_keywords(self, limit=50):
+    def _get_top_keywords(self, limit=10):
         with self.driver.session() as session:
             records, summary, keys = self.driver.execute_query(
                 '''
@@ -323,6 +373,68 @@ class NeoConnector:
 
             return data
 
+
+    def get_community_subgraph(self, id):
+        with self.driver.session() as session:
+            records, summary, keys = self.driver.execute_query(
+                "USE news "
+                "MATCH (n) WHERE n.id=$id return n",
+                database_="news", id=int(id),
+            )
+            origins = [p.data()['n'] for p in records]
+            records, summary, keys = self.driver.execute_query(
+                "USE news "
+                "MATCH (n)-[:SIMILAR_TO]-(p) WHERE p.community=n.community AND n.id=$id return p",
+                database_="news", id=int(id),
+            )
+            statements = [p.data()['p'] for p in records]
+
+            records, summary, keys = self.driver.execute_query(
+                "USE news "
+                "MATCH (n)-[:SIMILAR_TO]-(p), (n)-[:HAS_KEYWORD]-(d)-[:HAS_KEYWORD]-(p) "
+                "WHERE p.community=n.community AND "
+                "n.id=$id return DISTINCT(ID(d)) as id, d.name as statement, 'key_element' as tag",
+                database_="news", id=int(id),
+            )
+            key_elements = [p.data() for p in records]
+
+            records, summary, keys = self.driver.execute_query(
+                "USE news "
+                "MATCH (n)-[r:SIMILAR_TO]-(p), (n)-[:HAS_KEYWORD]-(d)-[:HAS_KEYWORD]-(p) WHERE p.community=n.community AND n.id=$id return n.id as "
+                "source, ID(d) as target, 'fake_news' as tag",
+                database_="news", id=int(id),
+            )
+            links = [p.data() for p in records]
+
+            records, summary, keys = self.driver.execute_query(
+                "USE news "
+                "MATCH (n)-[r:SIMILAR_TO]-(p), (n)-[:HAS_KEYWORD]-(d)-[:HAS_KEYWORD]-(p) WHERE p.community=n.community AND n.id=$id return "
+                "ID(d) as source, p.id as target",
+                database_="news", id=int(id),
+            )
+            links2 = [p.data() for p in records]
+
+            statements.extend(origins)
+            statements.extend(key_elements)
+            links.extend(links2)
+
+            print('ORIGIN')
+            print(origins)
+
+            print('STATEMENTS')
+            print(statements)
+
+            print('LINKS')
+            print(links)
+
+            data = {
+                'origin': origins,
+                'nodes': statements,
+                'links': links
+            }
+
+            return data
+
     def get_similar(self, id):
         with self.driver.session() as session:
             records, summary, keys = self.driver.execute_query(
@@ -348,25 +460,25 @@ class NeoConnector:
             }
             return my_dict
 
-
-
 '''
-MATCH (n:Fake_Statement)-[g]->(k)<-[r]-(n2:Fake_Statement)
-WHERE n <> n2
-WITH n, n2, collect(id(k)) AS kws_shared
-WHERE size(kws_shared) > 2
-MATCH (n)-[g]->(k)
-WITH n, n2, kws_shared, collect(id(k)) AS kws1
-MATCH (n2)-[r]->(k)
-WITH n, n2, kws_shared, kws1, collect(id(k)) AS kws2
-WITH n, n2, 1.0 * size(kws_shared) / (size(kws1) + size(kws2)  - size(kws_shared)) AS similarity
-MERGE (n)-[r:SIMILAR_TO]-(n2)
-SET r.similarity = similarity
-'''
+States about communities
 
-'''
+MATCH(p)  
+WITH DISTINCT(p.community) as comm_id, COUNT(p) as Total_number
+MATCH (q:Fake_Statement)
+WHERE q.community = comm_id
+RETURN comm_id, Total_number, COUNT(q) as Fake_S
 
-MATCH (n)-[r:SIMILAR_TO]-(n2)
-return n, r, n2
+Run Louvaine Algorithm
 
+ USE news
+       CALL gds.graph.project(
+        'myGraph2',
+        ['Fake_Statement', 'Entity', 'Person'],
+        {
+            HAS_KEYWORD: {
+                orientation: 'UNDIRECTED'
+            }
+        }
+        )
 '''
