@@ -6,10 +6,9 @@ class ChatGPTWrapper:
         openai.api_key = ""
 
     def create_debunk(self, statement):
-        querry = "Write a short debunk for: " + str(statement) + (". Do not repeat debunk or any other sections like "
-                                                                  "introduction, just the text")
+        querry = "Write a short debunk for: " + str(statement)
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+            model="ft:gpt-3.5-turbo-0613:personal::7tW4uzOE",
             messages=[
                 {"role": "system", "content": "You are a fact-checking journalist."},
                 {"role": "user",

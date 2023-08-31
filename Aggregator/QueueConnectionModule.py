@@ -6,7 +6,7 @@ from LocalState import LocalState
 from format_conversion.MainConvertor import MainConvertor
 from parsers import BaseParser2
 from parsers.MasterParser import MasterParser
-
+import traceback
 
 class QueueConnectionModule:
     def __init__(self, local_state: LocalState, parser: MasterParser, main_convertor: MainConvertor):
@@ -25,9 +25,11 @@ class QueueConnectionModule:
         try:
             parsed_object = self.parser.parse(payload)
             self.local_state.save_parsed_entry(parsed_object)
-            self.convertor.convert_csv('data.csv')
+            #self.convertor.convert_csv('data.csv')
         except Exception as e:
-            print(f"Error occurred for: {payload}")
+            print(f"Error occurred for: {payload['statement']}")
+            print(e)
+            traceback.print_exc()
 
 
     def listen(self):

@@ -15,6 +15,8 @@ class DataObject:
         self.crawled_date = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         self.narrative = []
         self.fake_news_content = ''
+        self.summary_explanation = ''
+
 
     def __str__(self):
         return f"""DataObject(
@@ -28,7 +30,8 @@ class DataObject:
     debunking_link={self.debunking_link},
     crawler_origin={self.crawler_origin},
     narrative={self.narrative},
-    fake_news_content={self.fake_news_content})"""
+    fake_news_content={self.fake_news_content},
+    summary_explanation={self.summary_explanation})"""
 
     def json_encoder(self):
         return {
@@ -43,4 +46,5 @@ class DataObject:
             'crawler_origin': self.crawler_origin,
             'crawled_date': self.crawled_date,
             'narrative': self.narrative,
-            'fake_news_content': self.fake_news_content}
+            'fake_news_content': self.fake_news_content,
+            'summary_explanation': self.summary_explanation}

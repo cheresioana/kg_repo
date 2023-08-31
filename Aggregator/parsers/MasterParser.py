@@ -18,5 +18,8 @@ class MasterParser:
             payload.final_object['title_entities'] = self.entity_extractor.extract_entities(payload.final_object['statement'])
         if not payload.final_object['news_entities']:
             payload.final_object['news_entities'] = self.entity_extractor.extract_entities(payload.final_object['fake_news_content'])
+        if not payload.final_object['keywords']:
+            payload.final_object['keywords'] = self.entity_extractor.get_keywords(payload.final_object,
+                                                                                  payload.final_object['title_entities'])
         #print(payload.final_object)
         return payload

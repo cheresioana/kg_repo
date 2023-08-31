@@ -15,6 +15,7 @@ class BaseParser2:
             'topics': [],
             'title_entities': [],
             'news_entities': [],
+            'keywords': [],
             'speaker': '',
             'speaker_job_title': '',
             # the person to whom is attributed the statement

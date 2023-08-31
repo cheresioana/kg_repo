@@ -1,6 +1,7 @@
 import os
 import random
 import sys
+from collections import Counter
 
 from flask import Flask, jsonify, request
 import json
@@ -16,6 +17,9 @@ from ChatGPT.ChatGPTWrapper import ChatGPTWrapper
 
 app = Flask(__name__)
 
+from Neo4JConnector.NeoAlgorithms import (NeoAlgorithms)
+
+neo_aglo = NeoAlgorithms()
 connector = NeoConnector()
 chat = ChatGPTWrapper()
 CORS(app)
@@ -77,10 +81,24 @@ def analyze():
         merged_list = [value for sublist in entities.values() for value in sublist]
         print(merged_list)
 
-        connector.set_similarity()
-        connector.run_louvain_algorithm()
+        # connector.set_similarity()
+        # connector.run_louvain_algorithm()
 
-        subgraf = connector.get_community_subgraph(statement_id)
+        neo_aglo.knn()
+        res = neo_aglo.find_similar(statement_id)
+        selected_communities = [r['community'] for r in res]
+        selected_communities = list(filter(lambda x: x is not None, selected_communities))
+        counter = Counter(selected_communities)
+        selected_community = -1
+        if len(selected_communities) > 0:
+            print("community detected")
+
+            selected_community = counter.most_common(1)[0][0]
+            print(selected_community)
+            subgraf = connector.get_community_detected_subgraph(statement_id, selected_community)
+        else:
+            print("community NOT detected")
+            subgraf = connector.get_community_not_detected_subgraph(statement_id)
         debunk = 'save the money'
         debunk = chat.create_debunk(data['statement'])
         dic = {

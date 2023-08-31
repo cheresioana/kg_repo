@@ -29,6 +29,20 @@ class NeoConnector:
             'TIME': 'MENTIONS_TIME',
             'WORK_OF_ART': 'MENTIONS_ART',
             'simple_keyword': 'HAS_KEYWORD'}
+        self.dic_key_accepted = {
+            'EVENT': 'MENTIONS_EVENT',
+            'FAC': 'MENTIONS_BUILDING',
+            'GPE': 'MENTIONS_GEO_ENTITIES',
+            'LANGUAGE': 'MENTIONS_LANGUAGE',
+            'LAW': 'MENTIONS_DOCUMENTS',
+            'LOC': 'MENTIONS_LOCATION',
+            'MONEY': 'MENTIONS_MONEY',
+            'NORP': 'MENTIONS_AFFILIATION',
+            'ORDINAL': 'MENTIONS_ORDINAL',
+            'ORG': 'MENTIONS_ORGANIZATION',
+            'PERSON': 'MENTIONS_PERSON',
+            'PRODUCT': 'MENTIONS_PRODUCT',
+            'simple_keyword': 'HAS_KEYWORD'}
         self.wikidata_query = "https://query.wikidata.org/bigdata/namespace/wdq/sparql?query="
 
     def close(self):
@@ -74,7 +88,7 @@ class NeoConnector:
                
                 MERGE (n)-[:HAS_KEYWORD]->(e)
             )"""
-            #Missing  MERGE (n)-[:""" + self.dic_key[key] + """]->(e)
+        # Missing  MERGE (n)-[:""" + self.dic_key[key] + """]->(e)
         with self.driver.session() as session:
             session.run(QUERY_ENTITIES, ent=entities[key], key=key, doc_id=doc_id)
 
@@ -91,7 +105,7 @@ class NeoConnector:
                 MERGE (n)-[:HAS_KEYWORD]->(e)
                 """
 
-        #Missing MERGE (n)-[:MENTIONS_PERSON]->(e)
+        # Missing MERGE (n)-[:MENTIONS_PERSON]->(e)
         with self.driver.session() as session:
             session.run(QUERY_PERSON, doc_id=doc_id, name=official_name,
                         status=status, uri=uri)
@@ -287,7 +301,6 @@ class NeoConnector:
             print(records)
             print(summary)
 
-
         WRITE_COMMUNITY = '''
         USE news
         CALL gds.louvain.write('myGraph', { writeProperty: 'community' })
@@ -298,20 +311,22 @@ class NeoConnector:
             print(records)
             print(summary)
 
-
-
-    def _get_statement_nodes(self):
+    def _get_statement_nodes(self, limit=200):
         with self.driver.session() as session:
             records, summary, keys = self.driver.execute_query(
                 "USE news "
                 "MATCH(p:Fake_Statement)-[:HAS_KEYWORD]-(n) "
+                "WITH apoc.node.degree(p) as degree, p "
                 "return DISTINCT p, p.id as intra_id, p.statement as statement, "
                 "'fake_news' as tag, ID(p) as id, "
-                "p.community as community",
-                database_="news"
+                " p.community as community, degree"
+                "   ORDER BY degree DESC"
+                " LIMIT $limit",
+                database_="news", limit=limit
             )
             statements = [p.data() for p in records]
             return statements
+
     def _get_top_keywords(self, limit=10):
         with self.driver.session() as session:
             records, summary, keys = self.driver.execute_query(
@@ -353,26 +368,25 @@ class NeoConnector:
 
     def get_kg(self):
 
-            statements = self._get_statement_nodes()
-            key_elements = self._get_top_keywords()
-            id_statements = [statement["id"] for statement in statements]
-            id_keys = [key["id"] for key in key_elements]
+        statements = self._get_statement_nodes()
+        key_elements = self._get_top_keywords()
+        id_statements = [statement["id"] for statement in statements]
+        id_keys = [key["id"] for key in key_elements]
 
-            links = self._get_links(id_statements, id_keys)
-            id_statements_linked = list(set([link['source'] for link in links]))
-            statements = self._get_statement_nodes_from_list(id_statements_linked)
-            print(len(statements))
-            print(len(id_keys))
-            #print(len(links))
-            #print(len(list(set(links))))
-            statements.extend(key_elements)
-            data = {
-                'nodes' : statements,
-                'links': links
-            }
+        links = self._get_links(id_statements, id_keys)
+        id_statements_linked = list(set([link['source'] for link in links]))
+        statements = self._get_statement_nodes_from_list(id_statements_linked)
+        print(len(statements))
+        print(len(id_keys))
+        # print(len(links))
+        # print(len(list(set(links))))
+        statements.extend(key_elements)
+        data = {
+            'nodes': statements,
+            'links': links
+        }
 
-            return data
-
+        return data
 
     def get_community_subgraph(self, id):
         with self.driver.session() as session:
@@ -435,11 +449,138 @@ class NeoConnector:
 
             return data
 
+    def get_community_detected_subgraph(self, id, community_id):
+        with self.driver.session() as session:
+            records, summary, keys = self.driver.execute_query(
+                "USE news "
+                "MATCH (n) WHERE n.id=$id return n",
+                database_="news", id=int(id),
+            )
+            origins = [p.data()['n'] for p in records]
+
+            querry = '''
+                   MATCH (p1:Fake_Statement)-[r:SIMILAR]->(p2:Fake_Statement)
+                   WHERE p1.id=$id and p2.community=$comm
+                   RETURN distinct(p2), r.score as similarity
+                   ORDER BY similarity DESCENDING LIMIT 3
+                   '''
+            records, summary, keys = self.driver.execute_query(
+                    querry,
+                    database_="news", id=id, comm=community_id
+            )
+            statements = [p.data()["p2"] for p in records]
+
+            ids = [p["id"] for p in statements]
+            records, summary, keys = self.driver.execute_query(
+                "USE news "
+                "MATCH (n)-[:HAS_KEYWORD]-(d)-[:HAS_KEYWORD]-(p) "
+                "WHERE p.id in $ids AND n.id=$id "
+                " return DISTINCT(ID(d)) as id, d.name as statement, 'key_element' as tag",
+                database_="news", id=int(id),ids=ids
+            )
+            key_elements = [p.data() for p in records]
+            ids_key = [p["id"] for p in key_elements]
+
+            records, summary, keys = self.driver.execute_query(
+                "USE news "
+                "MATCH (n)-[:HAS_KEYWORD]-(d)"
+                "WHERE n.id=$id  and ID(d) in $ids return n.id as "
+                "source, ID(d) as target, 'fake_news' as tag",
+                database_="news", id=int(id), ids=ids_key
+            )
+            links = [p.data() for p in records]
+
+            records, summary, keys = self.driver.execute_query(
+                "USE news "
+                "MATCH (n)-[:HAS_KEYWORD]-(d)"
+                "WHERE ID(d) in $ids_key  and n.id in $ids return n.id as "
+                "source, ID(d) as target, 'fake_news' as tag",
+                database_="news", id=int(id), ids_key=ids_key, ids=ids
+            )
+            links2 = [p.data() for p in records]
+
+            statements.extend(origins)
+            statements.extend(key_elements)
+            links.extend(links2)
+            #links = []
+            print('ORIGIN')
+            print(origins)
+
+            print('STATEMENTS')
+            print(statements)
+
+            print('LINKS')
+            print(links)
+
+            data = {
+                'origin': origins,
+                'nodes': statements,
+                'links': links
+            }
+
+            return data
+
+    def get_community_not_detected_subgraph(self, id):
+        with self.driver.session() as session:
+            records, summary, keys = self.driver.execute_query(
+                "USE news "
+                "MATCH (n) WHERE n.id=$id return n",
+                database_="news", id=int(id),
+            )
+            origins = [p.data()['n'] for p in records]
+            records, summary, keys = self.driver.execute_query(
+                "USE news "
+                "MATCH (n)-[:HAS_KEYWORD]-(p)-[:HAS_KEYWORD]-(d) WHERE n.id=$id return d LIMIT 5",
+                database_="news", id=int(id),
+            )
+            statements = [p.data()['d'] for p in records]
+
+            ids = [p["id"] for p in statements]
+            records, summary, keys = self.driver.execute_query(
+                "USE news "
+                "MATCH (n)-[:HAS_KEYWORD]-(p)-[:HAS_KEYWORD]-(d) "
+                "WHERE n.id=$id AND d.id in $ids"
+                "return n.id as "
+                "source, ID(p) as target, 'fake_news' as tag",
+                database_="news", id=int(id), ids=ids
+            )
+            links = [p.data() for p in records]
+
+            records, summary, keys = self.driver.execute_query(
+                "USE news "
+                "MATCH (n)-[:HAS_KEYWORD]-(p)-[:HAS_KEYWORD]-(d) "
+                "WHERE n.id=$id AND d.id in $ids"
+                "return d.id as "
+                "source, ID(p) as target, 'fake_news' as tag",
+                database_="news", id=int(id), ids=ids
+            )
+            links2 = [p.data() for p in records]
+
+            statements.extend(origins)
+            links.extend(links2)
+
+            print('ORIGIN')
+            print(origins)
+
+            print('STATEMENTS')
+            print(statements)
+
+            print('LINKS')
+            print(links)
+
+            data = {
+                'origin': origins,
+                'nodes': statements,
+                'links': links
+            }
+
+            return data
+
     def get_similar(self, id):
         with self.driver.session() as session:
             records, summary, keys = self.driver.execute_query(
                 "USE news "
-                "MATCH (p:Fake_Statement)-[r:SIMILAR_TO]-(k)" 
+                "MATCH (p:Fake_Statement)-[r:SIMILAR_TO]-(k)"
                 "WHERE ID(p)=$id and p.community=k.community "
                 "return k.id as intra_id, k.statement as statement, "
                 "'fake_news' as tag, ID(k) as id",
@@ -450,7 +591,7 @@ class NeoConnector:
                 "USE news "
                 "MATCH (p:Fake_Statement)-[r:SIMILAR_TO]-(k)"
                 "WHERE ID(p)=$id and p.community=k.community "
-               "RETURN ID(p) AS source, ID(k) AS target",
+                "RETURN ID(p) AS source, ID(k) AS target",
                 database_="news", id=int(id),
             )
             links = [p.data() for p in records]
@@ -459,6 +600,93 @@ class NeoConnector:
                 'links': links,
             }
             return my_dict
+
+    def get_communities(self):
+        querry = '''
+            MATCH (p)
+            WITH DISTINCT(p.community) as comm_id, COUNT(p) as Total_number
+            MATCH (q:Fake_Statement)
+            WHERE q.community = comm_id
+            WITH comm_id, Total_number, COUNT(q) as Fake_S
+            // For each community, find the Fake_Statement with the most relationships
+            OPTIONAL MATCH (most_connected:Fake_Statement)-[r]-()
+            WHERE most_connected.community = comm_id
+            WITH comm_id, Total_number, Fake_S, COLLECT(most_connected) as statements
+            RETURN comm_id, Total_number, Fake_S, statements;
+        '''
+        with self.driver.session() as session:
+            records, summary, keys = self.driver.execute_query(
+                querry,
+                database_="news",
+            )
+            statements = [p.data() for p in records]
+        return statements
+
+    def get_popular_statements_communities(self):
+        querry = '''
+            MATCH (p)
+            WITH DISTINCT(p.community) as comm_id, COUNT(p) as Total_number
+            MATCH (q:Fake_Statement)
+            WHERE q.community = comm_id
+            WITH comm_id, Total_number, COUNT(q) as Fake_S
+            // For each community, find the Fake_Statement with the most relationships
+            OPTIONAL MATCH (most_connected:Fake_Statement)-[r]-()
+            WHERE most_connected.community = comm_id
+            WITH comm_id, Total_number, Fake_S, most_connected, COUNT(r) as rel_count
+            ORDER BY rel_count DESC
+            WITH comm_id, Total_number, Fake_S, COLLECT(most_connected.id) as statements
+            RETURN comm_id, Total_number, Fake_S, statements;
+        '''
+        with self.driver.session() as session:
+            records, summary, keys = self.driver.execute_query(
+                querry,
+                database_="news",
+            )
+            statements = [p.data() for p in records]
+        return statements
+
+    def drop_fake_statements_associates(self, id):
+        querry = '''
+        MATCH (p:Fake_Statement)
+        WHERE p.id = $id
+        WITH p
+        OPTIONAL MATCH (p)-[r]-(allRelatedNodes)
+        WITH p, allRelatedNodes
+        Optional MATCH (allRelatedNodes)-[:HAS_KEYWORD]-(m)
+        WITH COUNT(m) as nr_rel,  p, allRelatedNodes
+        WHERE nr_rel < 2
+        detach delete p, allRelatedNodes
+        '''
+        with self.driver.session() as session:
+            records, summary, keys = self.driver.execute_query(
+                querry,
+                database_="news", id=id
+            )
+            #print(summary)
+    def del_similar_rel(self):
+        querry = '''
+        MATCH (n)-[r:SIMILAR]->()
+        DELETE r
+        '''
+        with self.driver.session() as session:
+            records, summary, keys = self.driver.execute_query(
+                querry,
+                database_="news"
+            )
+            print(summary)
+
+    def del_community_properties(self):
+        querry = '''
+        MATCH (a)
+        REMOVE a.age
+        '''
+        with self.driver.session() as session:
+            records, summary, keys = self.driver.execute_query(
+                querry,
+                database_="news"
+            )
+            print(summary)
+
 
 '''
 States about communities
@@ -481,4 +709,39 @@ Run Louvaine Algorithm
             }
         }
         )
+        
+        
+// First, aggregate by community and count the total nodes and Fake_Statement nodes
+MATCH (p)
+WITH DISTINCT(p.community) as comm_id, COUNT(p) as Total_number
+MATCH (q:Fake_Statement)
+WHERE q.community = comm_id
+WITH comm_id, Total_number, COUNT(q) as Fake_S
+// For each community, find the Fake_Statement with the most relationships
+OPTIONAL MATCH (most_connected:Fake_Statement)-[r]-()
+WHERE most_connected.community = comm_id
+WITH comm_id, Total_number, Fake_S, most_connected, COUNT(r) as rel_count
+ORDER BY rel_count DESC
+WITH comm_id, Total_number, Fake_S, COLLECT(most_connected)[0..3] as Most_Connected_Statement
+// For each community, find the top 3 entities with a has_keyword relationship
+OPTIONAL MATCH ()-[:HAS_KEYWORD]->(e:Entity)
+WHERE e.community = comm_id
+WITH comm_id, Total_number, Fake_S, Most_Connected_Statement, e, COUNT(*) as keyword_count
+ORDER BY keyword_count DESC
+WITH comm_id, Total_number, Fake_S, Most_Connected_Statement, COLLECT(e.name)[0..3] as Top_Entities
+RETURN comm_id, Total_number, Fake_S, Most_Connected_Statement, Top_Entities;
+
+
+  MATCH (p)
+            WITH DISTINCT(p.community) as comm_id, COUNT(p) as Total_number
+            MATCH (q:Fake_Statement)
+            WHERE q.community = comm_id
+            WITH comm_id, Total_number, COUNT(q) as Fake_S
+            // For each community, find the Fake_Statement with the most relationships
+            OPTIONAL MATCH (most_connected:Fake_Statement)-[r]-()
+            WHERE most_connected.community = comm_id
+            WITH comm_id, Total_number, Fake_S, most_connected, COUNT(r) as rel_count
+            ORDER BY rel_count DESC
+            WITH comm_id, Total_number, Fake_S, COLLECT(most_connected) as statements
+            RETURN comm_id, Total_number, Fake_S, statements;
 '''
