@@ -20,7 +20,7 @@ from Neo4JConnector.NeoConnector import (NeoConnector)
 import openai
 import os
 
-openai.api_key = ""
+openai.api_key = "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"
 
 
 def create_file(dataset, file_name):
@@ -156,13 +156,13 @@ def evaluate(model_list):
 
 
 if __name__ == "__main__":
-    #print(openai.FineTuningJob.list(limit=10))
+    print(openai.FineTuningJob.list(limit=10))
     #response = openai.FineTuningJob.create(training_file="file-c1X3xIE5W9rVMqi9yPjLhcCO", model="gpt-3.5-turbo")
     #response = openai.FineTuningJob.create(training_file="file-DqNCHKnPTyJKReEZl5FLY0rU", model="gpt-3.5-turbo")
     #print(response)
 
 
-    prepare_data()
+    '''prepare_data()
     call_train_models(['top_train.json', 'random_train.json']) #'top_train.json',
     generate([
         {"id": "ft:gpt-3.5-turbo-0613:personal::7tW4uzOE",
@@ -186,7 +186,7 @@ if __name__ == "__main__":
         {"id": "gpt-3.5-turbo",
          "name": "no_training"
          }
-    ])
+    ])'''
 
     # evaluate([
     # {"id":"file-H0wCSBmijFrW3q0wDYN1dR2g",

@@ -4,7 +4,6 @@ import time
 
 from format_conversion.MainConvertor import MainConvertor
 from parsers.MasterParser import MasterParser
-from parsers.MindBugsParser import MindBugsParser
 
 def start_listening():
     local_state = LocalState()

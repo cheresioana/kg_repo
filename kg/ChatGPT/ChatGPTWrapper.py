@@ -3,7 +3,7 @@ import openai
 
 class ChatGPTWrapper:
     def __init__(self):
-        openai.api_key = ""
+        openai.api_key = "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"
 
     def create_debunk(self, statement):
         querry = "Write a short debunk for: " + str(statement)

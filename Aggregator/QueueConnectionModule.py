@@ -23,10 +23,11 @@ class QueueConnectionModule:
         payload['received_date'] = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         self.local_state.append_message(json.dumps(payload, indent=4))
         try:
-            parsed_object = self.parser.parse(payload)
+            parsed_object = self.parser.parse(body)
             self.local_state.save_parsed_entry(parsed_object)
             #self.convertor.convert_csv('data.csv')
         except Exception as e:
+            payload = json.loads(body)
             print(f"Error occurred for: {payload['statement']}")
             print(e)
             traceback.print_exc()

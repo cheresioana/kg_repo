@@ -1,5 +1,5 @@
 from knowledge_extraction.EntityExtractor import EntityExtractor
-from parsers.VeridicaParser import VeridicaParser
+from parsers.BaseParser2 import BaseParser2
 
 
 class MasterParser:
@@ -7,19 +7,17 @@ class MasterParser:
         self.entity_extractor = EntityExtractor()
 
     def parse(self, payload):
-        if payload['crawler_name'] == 'veridica':
-            #print('Veridica')
-            parser = VeridicaParser()
-            parsed = parser.parse(payload)
+        parser = BaseParser2()
+        parsed = parser.parse(payload)
         return self.verify(parsed)
 
-    def verify(self, payload):
-        if not payload.final_object['title_entities']:
-            payload.final_object['title_entities'] = self.entity_extractor.extract_entities(payload.final_object['statement'])
-        if not payload.final_object['news_entities']:
-            payload.final_object['news_entities'] = self.entity_extractor.extract_entities(payload.final_object['fake_news_content'])
-        if not payload.final_object['keywords']:
-            payload.final_object['keywords'] = self.entity_extractor.get_keywords(payload.final_object,
-                                                                                  payload.final_object['title_entities'])
+    def verify(self, final_object):
+
+        final_object['title_entities'] = self.entity_extractor.extract_entities(final_object['statement'])
+
+        final_object['news_entities'] = self.entity_extractor.extract_entities(final_object['fake_news_content'])
+
+        final_object['keywords'] = self.entity_extractor.get_keywords(final_object,
+                                                                                  final_object['title_entities'])
         #print(payload.final_object)
-        return payload
+        return final_object

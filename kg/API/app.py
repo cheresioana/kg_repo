@@ -24,6 +24,9 @@ connector = NeoConnector()
 chat = ChatGPTWrapper()
 CORS(app)
 
+import pandas as pd
+
+df = pd.read_csv('data.csv')
 
 # Sample data
 def load_kg():
@@ -83,7 +86,7 @@ def analyze():
 
         # connector.set_similarity()
         # connector.run_louvain_algorithm()
-
+        connector.del_similar_rel()
         neo_aglo.knn()
         res = neo_aglo.find_similar(statement_id)
         selected_communities = [r['community'] for r in res]
@@ -111,6 +114,17 @@ def analyze():
         print("Failed to send data")
     return jsonify([])
 
+@app.route('/node_info/<id>', methods=['GET'])
+def get_node_info(id):
+    print(id)
+
+    res = df[df['id'] == int(id)]
+    if len(res) == 0:
+        return jsonify([])
+    res.fillna(0, inplace=True)
+    result = res.iloc[0]
+    print(result['statement'])
+    return jsonify(result.to_dict())
 
 if __name__ == '__main__':
     app.run(port=5005)

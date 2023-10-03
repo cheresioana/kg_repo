@@ -451,13 +451,21 @@ class NeoConnector:
 
     def get_community_detected_subgraph(self, id, community_id):
         with self.driver.session() as session:
+            #here I take the statement
             records, summary, keys = self.driver.execute_query(
                 "USE news "
                 "MATCH (n) WHERE n.id=$id return n",
                 database_="news", id=int(id),
             )
-            origins = [p.data()['n'] for p in records]
+            origins = []
+            for p in records:
+                g = p.data()['n']
+                g['tag'] = 'fake_news'
+                g['intra_id'] = g['id']
+                origins.append(g)
+            #origins = [p.data()['n'] for p in records]
 
+            #here I find the most similar statements
             querry = '''
                    MATCH (p1:Fake_Statement)-[r:SIMILAR]->(p2:Fake_Statement)
                    WHERE p1.id=$id and p2.community=$comm
@@ -468,7 +476,14 @@ class NeoConnector:
                     querry,
                     database_="news", id=id, comm=community_id
             )
-            statements = [p.data()["p2"] for p in records]
+            statements = []
+            for p in records:
+                g = p.data()['p2']
+                g['tag'] = 'fake_news'
+                g['intra_id'] = g['id']
+                statements.append(g)
+            #statements = [p.data()["p2"] for p in records]
+
 
             ids = [p["id"] for p in statements]
             records, summary, keys = self.driver.execute_query(
@@ -481,6 +496,7 @@ class NeoConnector:
             key_elements = [p.data() for p in records]
             ids_key = [p["id"] for p in key_elements]
 
+
             records, summary, keys = self.driver.execute_query(
                 "USE news "
                 "MATCH (n)-[:HAS_KEYWORD]-(d)"
@@ -489,15 +505,19 @@ class NeoConnector:
                 database_="news", id=int(id), ids=ids_key
             )
             links = [p.data() for p in records]
+            for p in links:
+                p["value"] = 4
 
             records, summary, keys = self.driver.execute_query(
                 "USE news "
                 "MATCH (n)-[:HAS_KEYWORD]-(d)"
                 "WHERE ID(d) in $ids_key  and n.id in $ids return n.id as "
-                "source, ID(d) as target, 'fake_news' as tag",
+                "target, ID(d) as source, 'fake_news' as tag",
                 database_="news", id=int(id), ids_key=ids_key, ids=ids
             )
             links2 = [p.data() for p in records]
+            for p in links2:
+                p["value"] = 2
 
             statements.extend(origins)
             statements.extend(key_elements)
@@ -534,13 +554,24 @@ class NeoConnector:
                 database_="news", id=int(id),
             )
             statements = [p.data()['d'] for p in records]
-
             ids = [p["id"] for p in statements]
+
+            records, summary, keys = self.driver.execute_query(
+                "USE news "
+                "MATCH (n)-[:HAS_KEYWORD]-(p)-[:HAS_KEYWORD]-(d) WHERE n.id=$id and d.id in $ids "
+                "return DISTINCT(ID(p)) as id, p.name as statement, 'key_element' as tag",
+                database_="news", id=int(id), ids=ids
+            )
+            keywords = [p.data() for p in records]
+            print("keywords")
+            print(keywords)
+
+
             records, summary, keys = self.driver.execute_query(
                 "USE news "
                 "MATCH (n)-[:HAS_KEYWORD]-(p)-[:HAS_KEYWORD]-(d) "
                 "WHERE n.id=$id AND d.id in $ids"
-                "return n.id as "
+                " return n.id as "
                 "source, ID(p) as target, 'fake_news' as tag",
                 database_="news", id=int(id), ids=ids
             )
@@ -550,13 +581,14 @@ class NeoConnector:
                 "USE news "
                 "MATCH (n)-[:HAS_KEYWORD]-(p)-[:HAS_KEYWORD]-(d) "
                 "WHERE n.id=$id AND d.id in $ids"
-                "return d.id as "
+                " return d.id as "
                 "source, ID(p) as target, 'fake_news' as tag",
                 database_="news", id=int(id), ids=ids
             )
             links2 = [p.data() for p in records]
 
             statements.extend(origins)
+            statements.extend(keywords)
             links.extend(links2)
 
             print('ORIGIN')
