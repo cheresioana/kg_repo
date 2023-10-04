@@ -3,7 +3,7 @@ from LocalTranslator import LocalTranslator
 from googletrans import Translator
 import unittest
 
-from main_scraper import parse_news_page
+from veridica_scraper import parse_news_page
 from ress import extract_text
 
 '''
