@@ -84,7 +84,7 @@ def get_keywords(row, title_entities):
     return entities
 
 if __name__ == '__main__':
-    df = pd.read_csv('data.csv')
+    df = pd.read_csv('data/data.csv')
     connector = NeoConnector()
     '''connector.get_similar(417)
     exit(0)

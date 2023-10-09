@@ -1,39 +1,26 @@
-import os
-import random
 import sys
+import os
+sys.path.append(os.path.dirname(os.path.abspath('/home/ioana/kg_repo/kg/ChatGPT')))
+sys.path.append(os.path.dirname(os.path.abspath('/home/ioana/kg_repo/kg/Neo4JConnector')))
+import random
 from collections import Counter
-
 from flask import Flask, jsonify, request
 import json
 from flask_cors import CORS
 import requests
-
-
-
-sys.path.append(os.path.dirname(os.path.abspath('/home/ioana/kg_repo/kg/Neo4JConnector')))
 from Neo4JConnector.NeoConnector import (NeoConnector)
-sys.path.append(os.path.dirname(os.path.abspath('/home/ioana/kg_repo/kg/ChatGPT')))
 from ChatGPT.ChatGPTWrapper import ChatGPTWrapper
+from Neo4JConnector.NeoAlgorithms import (NeoAlgorithms)
+import pandas as pd
 
 app = Flask(__name__)
-
-from Neo4JConnector.NeoAlgorithms import (NeoAlgorithms)
 
 neo_aglo = NeoAlgorithms()
 connector = NeoConnector()
 chat = ChatGPTWrapper()
 CORS(app)
 
-import pandas as pd
-
-df = pd.read_csv('data.csv')
-
-# Sample data
-def load_kg():
-    with open('../kg.json', 'r') as file:
-        data = json.load(file)
-        file.close()
-    return data
+df = pd.read_csv('data/data.csv')
 
 
 @app.route('/sample_kg', methods=['GET'])
@@ -57,14 +44,12 @@ def get_sample_kg():
 @app.route('/get_kg', methods=['GET'])
 def get_kg():
     kg = connector.get_kg()
-    #print(kg)
     return jsonify(kg)
 
 
 @app.route('/get_similar/<id>', methods=['GET'])
 def get_similar_kg(id):
     similar_list = connector.get_similar(id)
-    #print(similar_list)
     return jsonify(similar_list)
 
 
@@ -103,7 +88,7 @@ def analyze():
             print("community NOT detected")
             subgraf = connector.get_community_not_detected_subgraph(statement_id)
         debunk = 'save the money'
-        debunk = chat.create_debunk(data['statement'])
+        #debunk = chat.create_debunk(data['statement'])
         dic = {
             'keywords': merged_list,
             'subgraf': subgraf,
@@ -114,17 +99,17 @@ def analyze():
         print("Failed to send data")
     return jsonify([])
 
+
 @app.route('/node_info/<id>', methods=['GET'])
 def get_node_info(id):
-    print(id)
-
     res = df[df['id'] == int(id)]
     if len(res) == 0:
         return jsonify([])
     res.fillna(0, inplace=True)
     result = res.iloc[0]
-    print(result['statement'])
+
     return jsonify(result.to_dict())
+
 
 if __name__ == '__main__':
     app.run(port=5005)

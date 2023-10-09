@@ -153,7 +153,7 @@ def drop_random():
 
 
 def evaluate_insert(elements):
-    df = pd.read_csv('../../data.csv', index_col=None)
+    df = pd.read_csv('../../data/data.csv', index_col=None)
     connector = NeoConnector()
     connector.del_similar_rel()
     neo = NeoAlgorithms()

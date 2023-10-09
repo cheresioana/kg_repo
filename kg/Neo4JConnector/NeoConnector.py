@@ -59,7 +59,6 @@ class NeoConnector:
 
     def insert_search_statement(self, statement):
         INSERT_STATEMENT = """USE news
-            
             MERGE (n:Fake_Statement {statement: $input}) 
             SET n.query = 1, n.id = ID(n)
             RETURN ID(n) as id   
@@ -212,7 +211,6 @@ class NeoConnector:
                 "USE news MATCH(p:Fake_Statement) return p",
                 database_="news"
             )
-
             # Loop through results and do something with them
             for person in records:
                 print(person)
@@ -241,12 +239,6 @@ class NeoConnector:
                 results = [record for record in records]
                 print(results)
                 exit(0)
-
-            # Loop through results and do something with them
-            # print(results)
-            # for person in results:
-            #    print(person)
-            #    print(person["id"])
 
     def get_louvain_simple(self):
         CREATE_PROJECTION_QUERY = '''
