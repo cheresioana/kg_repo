@@ -140,7 +140,7 @@ def get_simple_keywords(row):
 
 
 if __name__ == '__main__':
-    df = pd.read_csv('../data/data.csv')
+    df = pd.read_csv('../data/data2.csv')
     connector = NeoConnector()
     i = 0
 
