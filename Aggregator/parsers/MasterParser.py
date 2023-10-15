@@ -19,5 +19,7 @@ class MasterParser:
 
         final_object['keywords'] = self.entity_extractor.get_keywords(final_object,
                                                                                   final_object['title_entities'])
+
+        final_object['tags'] = self.entity_extractor.get_tags_entities(final_object)
         #print(payload.final_object)
         return final_object

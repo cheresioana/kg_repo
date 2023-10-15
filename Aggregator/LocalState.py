@@ -14,7 +14,7 @@ class LocalState:
             f.seek(os.stat(self.filename).st_size - 1)
             f.write(",{}]".format(obj, indent=4))
 
-    def save_parsed_entry(self, entry , csv_filename="data.csv"):
+    def save_parsed_entry(self, entry , csv_filename="data2.csv"):
         if not os.path.isfile(csv_filename):
             with open(csv_filename, 'w', newline='') as csvfile:
                 headers = list(entry.keys())

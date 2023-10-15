@@ -1,5 +1,11 @@
 import sys
 import os
+
+from DataObject.SubGraphResult import ComplexEncoder, ResultItem, Node, Link
+
+sys.path.append(os.path.dirname(os.path.abspath('/home/ioana/kg_repo/kg/SearchEngine')))
+from SearchEngine import SearchEngine
+
 sys.path.append(os.path.dirname(os.path.abspath('/home/ioana/kg_repo/kg/ChatGPT')))
 sys.path.append(os.path.dirname(os.path.abspath('/home/ioana/kg_repo/kg/Neo4JConnector')))
 import random
@@ -20,7 +26,7 @@ connector = NeoConnector()
 chat = ChatGPTWrapper()
 CORS(app)
 
-df = pd.read_csv('data/data.csv')
+df = pd.read_csv('data/data2.csv')
 
 
 @app.route('/sample_kg', methods=['GET'])
@@ -88,7 +94,7 @@ def analyze():
             print("community NOT detected")
             subgraf = connector.get_community_not_detected_subgraph(statement_id)
         debunk = 'save the money'
-        #debunk = chat.create_debunk(data['statement'])
+        # debunk = chat.create_debunk(data['statement'])
         dic = {
             'keywords': merged_list,
             'subgraf': subgraf,
@@ -98,6 +104,22 @@ def analyze():
     else:
         print("Failed to send data")
     return jsonify([])
+
+
+@app.route('/analyze2', methods=['POST'])
+def analyze2():
+    data = request.get_json()
+    search_engine = SearchEngine()
+    keywords, show_links, show_nodes, path_result, origin_node = search_engine.find_results(data['statement'])
+    json_response = {
+        'origin': [origin_node],
+        'keywords': keywords,
+        'links': show_links,
+        'nodes': show_nodes,
+        'all_results': path_result
+    }
+    json_str = json.dumps(json_response, cls=ComplexEncoder, indent=4)
+    return json_str
 
 
 @app.route('/node_info/<id>', methods=['GET'])
@@ -110,6 +132,100 @@ def get_node_info(id):
 
     return jsonify(result.to_dict())
 
+
+@app.route('/addStatement', methods=['POST'])
+def addStatement():
+    print("ADD STATEMENT")
+    data = request.get_json()
+    print(data)
+    intra_id = data['intra_id']
+    query_node = Node(data['origin']['intra_id'], data['origin']['statement'], data['origin']['id'])
+    # parsed_data = json.loads(data["all_results"])
+    result_items = [
+        ResultItem(
+            item_data['weight'],
+            item_data['intra_id'],
+            item_data['query_id'],
+            item_data['statement'],
+            [Node(**node) for node in item_data['nodes']],  # Convert each dict to a Node instance
+            [Link(**link) for link in item_data['links']],  # Convert each dict to a Link instance
+            selected=item_data.get('selected', 0)  # using .get() in case 'selected' is not present
+        )
+        for item_data in data["all_results"]
+    ]
+    show_nodes = []
+    show_links = []
+    for result_item in result_items:
+        if result_item.selected == 1:
+            show_nodes.extend(result_item.nodes)
+            show_links.extend(result_item.links)
+        elif result_item.intra_id == intra_id:
+            show_nodes.extend(result_item.nodes)
+            show_links.extend(result_item.links)
+            result_item.selected = 1
+    show_links = list(set(show_links))
+    show_nodes = (list(set(show_nodes)))
+    show_nodes.append(query_node)
+    json_response = {
+        'origin': [query_node],
+        'keywords': data['keywords'],
+        'links': show_links,
+        'nodes': show_nodes,
+        'all_results': result_items
+    }
+
+    print(result_items[0].weight)
+    print(result_items[0].statement)
+
+    json_str = json.dumps(json_response, cls=ComplexEncoder, indent=4)
+    return json_str
+
+
+@app.route('/removeStatement', methods=['POST'])
+def removeStatement():
+    print("REMOVE")
+    data = request.get_json()
+    print(data)
+    intra_id = data['intra_id']
+    query_node = Node(data['origin']['intra_id'], data['origin']['statement'], data['origin']['id'])
+    # parsed_data = json.loads(data["all_results"])
+    result_items = [
+        ResultItem(
+            item_data['weight'],
+            item_data['intra_id'],
+            item_data['query_id'],
+            item_data['statement'],
+            [Node(**node) for node in item_data['nodes']],  # Convert each dict to a Node instance
+            [Link(**link) for link in item_data['links']],  # Convert each dict to a Link instance
+            selected=item_data.get('selected', 0)  # using .get() in case 'selected' is not present
+        )
+        for item_data in data["all_results"]
+    ]
+    show_nodes = []
+    show_links = []
+    for result_item in result_items:
+        if result_item.intra_id == intra_id:
+            result_item.selected = 0
+        elif result_item.selected == 1:
+            show_nodes.extend(result_item.nodes)
+            show_links.extend(result_item.links)
+
+    show_links = list(set(show_links))
+    show_nodes = (list(set(show_nodes)))
+    show_nodes.append(query_node)
+    json_response = {
+        'origin': [query_node],
+        'keywords': data['keywords'],
+        'links': show_links,
+        'nodes': show_nodes,
+        'all_results': result_items
+    }
+
+    print(result_items[0].weight)
+    print(result_items[0].statement)
+
+    json_str = json.dumps(json_response, cls=ComplexEncoder, indent=4)
+    return json_str
 
 if __name__ == '__main__':
     app.run(port=5005)

@@ -6,8 +6,10 @@ from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 import pytextrank
 import nltk
+
 nltk.download('punkt')
 nltk.download('stopwords')
+
 
 class EntityExtractor():
     def __init__(self, ):
@@ -75,3 +77,20 @@ class EntityExtractor():
             # result2.append(filtered_text)
 
         return entities
+
+    def get_tags_entities(self, data_object):
+        result = {'keywords': []}
+        source = data_object['tags']
+        for element in source:
+            print(element)
+            entities = self.extract_entities(element)
+            print(entities)
+            if not entities and element not in result['keywords']:
+                result['keywords'].append(element)
+            for en in entities.keys():
+                if en not in result.keys():
+                    result[en] = list()
+                for entity in entities[en]:
+                    if entity not in result[en]:
+                        result[en].append(entity)
+        return result

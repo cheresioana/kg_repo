@@ -21,7 +21,7 @@ class OpenAIEmbeddingWrapper:
         df["embedding"] = df['clean_combined_text'].apply(lambda x: get_embedding(x, engine=embedding_model))
         df.to_csv("data/data_with_embeddings.csv")
 
-    def search_vector_space(self, df, query, n=3):
+    def search_vector_space_dataframe(self, df, query, n=3):
         clean_query = clean_text(query)
         query_embedding = get_embedding(
             clean_query,
@@ -33,3 +33,9 @@ class OpenAIEmbeddingWrapper:
             .head(n)
         )
         return results
+    def get_embedding(self, query:str):
+        query_embedding = get_embedding(
+            query,
+            engine="text-embedding-ada-002"
+        )
+        return query_embedding

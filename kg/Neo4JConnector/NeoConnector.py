@@ -5,6 +5,8 @@ from urllib.parse import urlparse
 import requests
 from neo4j import GraphDatabase, basic_auth
 
+from DataObject.SubGraphResult import Node
+
 
 class NeoConnector:
     def __init__(self):
@@ -51,7 +53,7 @@ class NeoConnector:
     def insert_statement(self, row):
         INSERT_STATEMENT = """USE news
             UNWIND $inputs AS row
-            MERGE (n:Fake_Statement {id: row.id}) 
+            MERGE (n:Fake_Statement {id: row.id, embedding: row.embedding}) 
             SET n.statement = row.statement    
         """
         with self.driver.session() as session:
@@ -60,15 +62,31 @@ class NeoConnector:
     def insert_search_statement(self, statement):
         INSERT_STATEMENT = """USE news
             MERGE (n:Fake_Statement {statement: $input}) 
-            SET n.query = 1, n.id = ID(n)
-            RETURN ID(n) as id   
+            SET n.query = 1, n.id = ID(n), n.tag='query', n.intra_id = ID(n)
+            RETURN n   
         """
         with self.driver.session() as session:
             records, summary, keys = self.driver.execute_query(INSERT_STATEMENT, input=statement)
             if len(records) > 0:
-                return records[0]['id']
+                record = records[0].data()['n']
+                return Node(record['intra_id'], record['statement'], record['id'], record['tag'])
+                #return records[0]['id']
+
         return None
 
+    # def insert_simple_entity(self, doc_id, entities, key):
+    #     QUERY_ENTITIES = """USE news
+    #         UNWIND $ent AS ents
+    #
+    #         MATCH (n:Fake_Statement {id: $doc_id})
+    #          FOREACH(entity IN $ent |
+    #             MERGE (e:Entity {name: entity, ent_type: $key})
+    #
+    #             MERGE (n)-[:HAS_KEYWORD]->(e)
+    #         )"""
+    #     # Missing  MERGE (n)-[:""" + self.dic_key[key] + """]->(e)
+    #     with self.driver.session() as session:
+    #         session.run(QUERY_ENTITIES, ent=entities[key], key=key, doc_id=doc_id)
     def insert_statement_entities(self, doc_id, entities):
         entity_keys = list(entities.keys())
         for key in entity_keys:
@@ -83,7 +101,7 @@ class NeoConnector:
 
             MATCH (n:Fake_Statement {id: $doc_id})
              FOREACH(entity IN $ent |
-                MERGE (e:Entity {name: entity})
+                MERGE (e:Entity {name: entity, type:$key})
                
                 MERGE (n)-[:HAS_KEYWORD]->(e)
             )"""
@@ -95,7 +113,7 @@ class NeoConnector:
         return 'SELECT ?entity ?entityLabel ?id WHERE\n{?entity rdfs:label "' + str(
             entity) + '"@en.\n?entity wdt:P31 wd:Q5. \n SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }\n}'
 
-    def __insert_person(self, doc_id, official_name, uri='', status='unkown'):
+    def __insert_person(self, doc_id, official_name, uri='', status='unknown'):
         QUERY_PERSON = """USE news
             
             MATCH (n:Fake_Statement {id: $doc_id})
@@ -157,7 +175,8 @@ class NeoConnector:
                 return 1
             except:
                 return -1
-        return -1
+        else:
+            self.__insert_person(doc_id, entity)
 
     def __insert_person_entities(self, doc_id, entities):
         for entity in entities:
@@ -669,24 +688,60 @@ class NeoConnector:
             statements = [p.data() for p in records]
         return statements
 
+    def get_statements_vectors(self):
+        query = '''
+            USE news
+            MATCH (p:Fake_Statement)
+            WHERE p.embedding IS NOT NULL 
+            RETURN p.id as id, ID(p) as intra_id, p.embedding as embedding, p.statement as statement;
+        '''
+        with self.driver.session() as session:
+            records, summary, keys = self.driver.execute_query(
+                query,
+                database_="news",
+            )
+            statements = [p.data() for p in records]
+        return statements
+
+    def simple_delete(self, id):
+        #print('simple_delete')
+        query = '''
+                MATCH (p:Fake_Statement)
+                WHERE ID(p) = $id and p.query=1
+                detach delete p
+                '''
+        with self.driver.session() as session:
+            records, summary, keys = self.driver.execute_query(
+                query,
+                database_="news", id=id
+            )
+            #print(records)
     def drop_fake_statements_associates(self, id):
         querry = '''
         MATCH (p:Fake_Statement)
-        WHERE p.id = $id
+        WHERE ID(p) = $id and p.query=1
         WITH p
         OPTIONAL MATCH (p)-[r]-(allRelatedNodes)
         WITH p, allRelatedNodes
         Optional MATCH (allRelatedNodes)-[:HAS_KEYWORD]-(m)
-        WITH COUNT(m) as nr_rel,  p, allRelatedNodes
+        WITH COUNT(m) as nr_rel,  p, allRelatedNodes, ID(p) as pid, ID(allRelatedNodes) as allrel
         WHERE nr_rel < 2
         detach delete p, allRelatedNodes
+        return pid, allrel
         '''
         with self.driver.session() as session:
             records, summary, keys = self.driver.execute_query(
                 querry,
                 database_="news", id=id
             )
-            #print(summary)
+            print(records)
+            print(summary)
+            print(keys)
+            statements = [p.data() for p in records]
+            if len(statements) == 0:
+                self.simple_delete(id)
+
+
     def del_similar_rel(self):
         querry = '''
         MATCH (n)-[r:SIMILAR]->()

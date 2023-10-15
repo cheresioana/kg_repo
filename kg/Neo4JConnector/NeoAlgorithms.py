@@ -39,6 +39,19 @@ class NeoAlgorithms(NeoConnector):
             cons = summary.result_consumed_after
             total_time = avail + cons
             print("Louvain time: " + str(total_time))
+            
+    def find_dijkstra_path(self, start_id, end_id):
+        FIND_PATH = '''
+            USE news
+            MATCH (a:Fake_Statement), (b:Fake_Statement)
+            WHERE ID(a) = $start_id AND ID(b) = $end_id
+            CALL apoc.algo.dijkstra(a, b, 'HAS_KEYWORD', "weight", 1, 2) YIELD path, weight
+            RETURN path, weight
+        '''
+        with self.driver.session() as session:
+            records, summary, keys = self.driver.execute_query(FIND_PATH, start_id=start_id, end_id=end_id)
+            paths = [p.data() for p in records]
+            return paths
 
     def find_similar(self, id):
         querry = '''

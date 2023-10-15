@@ -140,7 +140,7 @@ def get_simple_keywords(row):
 
 
 if __name__ == '__main__':
-    df = pd.read_csv('../data/data2.csv')
+    df = pd.read_csv('../data/data_with_embeddings.csv')
     connector = NeoConnector()
     i = 0
 
@@ -149,20 +149,18 @@ if __name__ == '__main__':
         if pd.isna(row['statement']) or pd.isna(row['summary_explanation']):
             continue
         title_entities = eval(row['title_entities'])
-        #keywords = get_keywords(row, title_entities)
         keywords = eval(row['keywords'])
-        # print(keywords)
-
-        # keywords = [{'name': clean_keyword(x.text), 'rank': x.rank}]
-        # print(keywords)
-
-        # news_entities = eval(row['news_entities'])
+        tags = eval(row['tags'])
+        print(row)
+        row['embedding'] = eval(row['embedding'])
         connector.insert_statement(row)
-        connector.insert_statement_entities(row['id'], get_simple_keywords(row))
         connector.insert_statement_entities(row['id'], title_entities)
+        connector.insert_statement_entities(row['id'], keywords)
+        connector.insert_statement_entities(row['id'], tags)
         #connector.insert_statement_entities(row['id'], keywords)
         print(i)
         i = i + 1
+
         #exit(0)
 
         # exit(0)
