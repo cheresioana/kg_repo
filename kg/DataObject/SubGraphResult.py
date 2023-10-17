@@ -66,15 +66,21 @@ class ResultItem:
     selected: int
     nodes: List[Node]
     links: List[Link]
+    date: str
+    channel: str
+    location: str
 
-    def __init__(self, weight, intra_id, query_id, statement, nodes, links, selected=0):
+    def __init__(self, weight, intra_id, query_id, statement, nodes, links, selected=0, date="", channel="", location=""):
         self.weight = weight
         self.intra_id = intra_id
         self.query_id = query_id
         self.selected = selected
         self.statement = statement
-        self.nodes = nodes  # This should be a list of Node objects
-        self.links = links  # This should be a list of Link objects
+        self.nodes = nodes  # This is the list of Node to reach the  target statement
+        self.links = links
+        self.date = date
+        self.channel = channel
+        self.location = location
 
 
 class SubGraphResult:

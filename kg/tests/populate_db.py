@@ -12,6 +12,7 @@ from nltk.tokenize import word_tokenize
 '''import nltk
 nltk.download('punkt')
 nltk.download('stopwords')'''
+from urllib.parse import urlparse
 sys.path.append(os.path.dirname(os.path.abspath('/home/ioana/kg_repo/kg/Neo4JConnector')))
 from Neo4JConnector.NeoConnector import NeoConnector
 
@@ -153,15 +154,25 @@ if __name__ == '__main__':
         tags = eval(row['tags'])
         print(row)
         row['embedding'] = eval(row['embedding'])
-        connector.insert_statement(row)
-        connector.insert_statement_entities(row['id'], title_entities)
-        connector.insert_statement_entities(row['id'], keywords)
-        connector.insert_statement_entities(row['id'], tags)
+        if pd.isna(row['date']):
+            row["date"] = ""
+
+        record_id = connector.insert_statement(row)
+        connector.insert_statement_entities(record_id, title_entities)
+        connector.insert_statement_entities(record_id, keywords)
+        connector.insert_statement_entities(record_id, tags)
+
+        if not pd.isna(row['spread_location']):
+            connector.insert_location(record_id, row['spread_location'])
+        if not pd.isna(row['fake_news_source']):
+            parsed_url = urlparse(row['fake_news_source'])
+            base_url = parsed_url.netloc
+            connector.insert_channel(record_id, base_url)
+
         #connector.insert_statement_entities(row['id'], keywords)
         print(i)
         i = i + 1
 
-        #exit(0)
 
         # exit(0)
         # connector.insert_statement_entities(row, news_entities)

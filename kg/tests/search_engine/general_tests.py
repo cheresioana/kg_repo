@@ -104,5 +104,17 @@ class TestBasicFunctions(unittest.TestCase):
         for path in paths:
             self.assertEqual(2, path['weight'])
 
+    def test_get_statement_location(self):
+        neo_connector = NeoConnector()
+        location = neo_connector.get_statement_location(566)
+        self.assertEqual(1, len(location))
+        self.assertEqual("Romania", location[0])
+
+    def test_get_statement_channel(self):
+        neo_connector = NeoConnector()
+        location = neo_connector.get_statement_channel(114)
+        self.assertEqual(1, len(location))
+        self.assertEqual("ukraina.ru", location[0])
+
 if __name__ == '__main__':
     unittest.main()

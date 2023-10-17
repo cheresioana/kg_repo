@@ -53,11 +53,15 @@ class NeoConnector:
     def insert_statement(self, row):
         INSERT_STATEMENT = """USE news
             UNWIND $inputs AS row
-            MERGE (n:Fake_Statement {id: row.id, embedding: row.embedding}) 
-            SET n.statement = row.statement    
+            MERGE (n:Fake_Statement {embedding: row.embedding, date: row.date}) 
+            SET n.statement = row.statement, n.id = ID(n), n.intra_id = ID(n)
+            RETURN n
         """
         with self.driver.session() as session:
-            session.run(INSERT_STATEMENT, inputs=row.to_dict())
+            records, summary, keys = self.driver.execute_query(INSERT_STATEMENT, inputs=row.to_dict())
+            if len(records) > 0:
+                record = records[0].data()['n']
+                return record['id']
 
     def insert_search_statement(self, statement):
         INSERT_STATEMENT = """USE news
@@ -102,12 +106,31 @@ class NeoConnector:
             MATCH (n:Fake_Statement {id: $doc_id})
              FOREACH(entity IN $ent |
                 MERGE (e:Entity {name: entity, type:$key})
-               
-                MERGE (n)-[:HAS_KEYWORD]->(e)
+                SET e.intra_id = ID(e)
+                MERGE (n)-[:HAS_KEYWORD {weight:1}]->(e)
             )"""
         # Missing  MERGE (n)-[:""" + self.dic_key[key] + """]->(e)
         with self.driver.session() as session:
             session.run(QUERY_ENTITIES, ent=entities[key], key=key, doc_id=doc_id)
+
+
+    def insert_location(self, doc_id, location):
+        QUERY_ENTITIES = """USE news
+            MATCH (n:Fake_Statement {id: $doc_id})
+            MERGE (e:Location {location: $location})
+            MERGE (n)-[:HAS_LOCATION]->(e)
+            """
+        with self.driver.session() as session:
+            session.run(QUERY_ENTITIES, location=location, doc_id=doc_id)
+
+    def insert_channel(self, doc_id, channel):
+        QUERY_ENTITIES = """USE news
+            MATCH (n:Fake_Statement {id: $doc_id})
+            MERGE (e:Channel {name: $channel})
+            MERGE (n)-[:HAS_CHANNEL]->(e)
+            """
+        with self.driver.session() as session:
+            session.run(QUERY_ENTITIES, channel=channel, doc_id=doc_id)
 
     def __get_label_query(self, entity):
         return 'SELECT ?entity ?entityLabel ?id WHERE\n{?entity rdfs:label "' + str(
@@ -118,8 +141,8 @@ class NeoConnector:
             
             MATCH (n:Fake_Statement {id: $doc_id})
                 MERGE (e:Person {name: $name, status: $status, uri: $uri})
-                
-                MERGE (n)-[:HAS_KEYWORD]->(e)
+                SET e.intra_id = ID(e)
+                MERGE (n)-[:HAS_KEYWORD {weight:1}]->(e)
                 """
 
         # Missing MERGE (n)-[:MENTIONS_PERSON]->(e)
@@ -693,7 +716,7 @@ class NeoConnector:
             USE news
             MATCH (p:Fake_Statement)
             WHERE p.embedding IS NOT NULL 
-            RETURN p.id as id, ID(p) as intra_id, p.embedding as embedding, p.statement as statement;
+            RETURN p.id as id, ID(p) as intra_id, p.embedding as embedding, p.statement as statement, p.date as date;
         '''
         with self.driver.session() as session:
             records, summary, keys = self.driver.execute_query(
@@ -702,6 +725,44 @@ class NeoConnector:
             )
             statements = [p.data() for p in records]
         return statements
+
+    def get_statement_location(self, intra_id):
+        query = '''
+            USE news
+            MATCH (p:Fake_Statement)-[:HAS_LOCATION]-(g:Location)
+            WHERE p.intra_id=$intra_id 
+            RETURN g;
+        '''
+        with self.driver.session() as session:
+            records, summary, keys = self.driver.execute_query(
+                query,
+                database_="news",
+                intra_id=intra_id
+            )
+            statements = [g.data()["g"]["location"] for g in records]
+        if len(statements) > 0:
+            return statements[0]
+
+        return ""
+
+    def get_statement_channel(self, intra_id):
+        query = '''
+            USE news
+            MATCH (p:Fake_Statement)-[:HAS_CHANNEL]-(g:Channel)
+            WHERE p.intra_id=$intra_id 
+            RETURN g;
+        '''
+        with self.driver.session() as session:
+            records, summary, keys = self.driver.execute_query(
+                query,
+                database_="news",
+                intra_id=intra_id
+            )
+            statements = [g.data()["g"]["name"] for g in records]
+            if len(statements)> 0:
+                return statements[0]
+
+        return ""
 
     def simple_delete(self, id):
         #print('simple_delete')

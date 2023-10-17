@@ -119,6 +119,8 @@ def analyze2():
         'all_results': path_result
     }
     json_str = json.dumps(json_response, cls=ComplexEncoder, indent=4)
+    with open("mihai.json", "w") as json_file:
+        json.dump(json_response, json_file, cls=ComplexEncoder, indent=2)
     return json_str
 
 
@@ -149,7 +151,10 @@ def addStatement():
             item_data['statement'],
             [Node(**node) for node in item_data['nodes']],  # Convert each dict to a Node instance
             [Link(**link) for link in item_data['links']],  # Convert each dict to a Link instance
-            selected=item_data.get('selected', 0)  # using .get() in case 'selected' is not present
+            selected=item_data.get('selected', 0),# using .get() in case 'selected' is not present
+            date=item_data.get('date', ""),
+            channel=item_data.get('channel', ""),
+            location=item_data.get('location', "")
         )
         for item_data in data["all_results"]
     ]
@@ -197,7 +202,10 @@ def removeStatement():
             item_data['statement'],
             [Node(**node) for node in item_data['nodes']],  # Convert each dict to a Node instance
             [Link(**link) for link in item_data['links']],  # Convert each dict to a Link instance
-            selected=item_data.get('selected', 0)  # using .get() in case 'selected' is not present
+            selected=item_data.get('selected', 0),  # using .get() in case 'selected' is not present
+            date=item_data.get('date', ""),
+            channel=item_data.get('channel', ""),
+            location=item_data.get('location', "")
         )
         for item_data in data["all_results"]
     ]
