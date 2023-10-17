@@ -1,1 +1,0 @@
-{ "nodes":[{"id":1140,"statement":"Ukrainians want a president like Vladimir Putin","tag":"fake_news"},{"id":1141,"statement":"Ukrainians","tag":"entity"},{"id":1142,"statement":"Vladimir Putin","tag":"entity"}], "links":[{"source":1140,"target":1141,"edge":"contains_entity"},{"source":1140,"target":1142,"edge":"contains_entity"}]}
