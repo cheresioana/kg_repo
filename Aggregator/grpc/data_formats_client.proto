@@ -1,5 +1,8 @@
 syntax = "proto3";
 
+message Empty {
+}
+
 message Statement {
   string type = 1;
 }
@@ -13,6 +16,7 @@ message EntityResponse {
   repeated Entity entities = 1;
 }
 
-service MainService {
-  rpc GetKeywords(Statement) returns (EntityResponse);
+service ClientService {
+  rpc RequestKeywords(Empty) returns (Statement);
+  rpc ParseKeywords(EntityResponse) returns (Empty);
 }

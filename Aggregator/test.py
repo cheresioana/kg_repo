@@ -4,7 +4,7 @@ import data_formats_pb2_grpc as grcp_pb
 
 
 def run_client():
-    with grpc.insecure_channel('0.0.0.0:50051') as channel:  # Change the address/port if needed
+    with grpc.insecure_channel('0.0.0.0:8061') as channel:  # Change the address/port if needed
         stub = grcp_pb.MainServiceStub(channel)
 
         # Prepare a request

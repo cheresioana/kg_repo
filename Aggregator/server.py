@@ -25,8 +25,9 @@ class Main(grcp_pb.MainService):
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     grcp_pb.add_MainServiceServicer_to_server(Main(), server)
-    server.add_insecure_port('[::]:50051')  # Change the port if needed
+    server.add_insecure_port('[::]:8061')  # Change the port if needed
     server.start()
+    print("Started server")
     server.wait_for_termination()
 
 

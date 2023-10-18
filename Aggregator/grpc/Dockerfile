@@ -5,7 +5,7 @@ FROM python:3.8
 WORKDIR /aggregator
 
 # Copy the current directory contents into the container at /app
-COPY . /aggregator
+COPY .. /aggregator
 
 # Install any needed packages specified in requirements.txt
 RUN pip install -r requirements.txt
@@ -13,4 +13,4 @@ RUN pip install -r requirements.txt
 EXPOSE 8061
 
 # Run the API application
-CMD ["python", "server.py"]
+CMD ["python", "client.py"]
