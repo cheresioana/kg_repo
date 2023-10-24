@@ -1,10 +1,11 @@
 import openai
 import os
-
+from constanst import OPENAI_API_KEY
 
 class ChatGPTWrapper:
     def __init__(self):
-        openai.api_key = os.environ.get('OPENAI_API_KEY')
+        openai.api_key = OPENAI_API_KEY
+
 
     def create_debunk(self, statement):
         query = "Write a short debunk for: " + str(statement)

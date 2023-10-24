@@ -1,13 +1,17 @@
 import sys
 import os
 
+
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from tests.populate_db import populate
+from constanst import AGGREGATOR_URL
+
 from DataObject.SubGraphResult import ComplexEncoder, ResultItem, Node, Link
 
-sys.path.append(os.path.dirname(os.path.abspath('/home/ioana/kg_repo/kg/SearchEngine')))
+
 from SearchEngine import SearchEngine
 
-sys.path.append(os.path.dirname(os.path.abspath('/home/ioana/kg_repo/kg/ChatGPT')))
-sys.path.append(os.path.dirname(os.path.abspath('/home/ioana/kg_repo/kg/Neo4JConnector')))
 import random
 from collections import Counter
 from flask import Flask, jsonify, request
@@ -64,7 +68,7 @@ def analyze():
     data = request.get_json()
     print(data)
     print(data['statement'])
-    response = requests.post("http://127.0.0.1:5006/keywords", json=data)
+    response = requests.post(AGGREGATOR_URL, json=data)
     if response.status_code == 200:
         entities = response.json()
         statement_id = connector.insert_search_statement(data['statement'])
@@ -154,7 +158,8 @@ def addStatement():
             selected=item_data.get('selected', 0),# using .get() in case 'selected' is not present
             date=item_data.get('date', ""),
             channel=item_data.get('channel', ""),
-            location=item_data.get('location', "")
+            location=item_data.get('location', ""),
+            url=item_data.get('url', "")
         )
         for item_data in data["all_results"]
     ]
@@ -205,7 +210,8 @@ def removeStatement():
             selected=item_data.get('selected', 0),  # using .get() in case 'selected' is not present
             date=item_data.get('date', ""),
             channel=item_data.get('channel', ""),
-            location=item_data.get('location', "")
+            location=item_data.get('location', ""),
+            url=item_data.get('url', "")
         )
         for item_data in data["all_results"]
     ]
@@ -235,5 +241,10 @@ def removeStatement():
     json_str = json.dumps(json_response, cls=ComplexEncoder, indent=4)
     return json_str
 
+@app.route('/init_db', methods=['GET'])
+def init_db():
+    populate()
+    return jsonify([])
+
 if __name__ == '__main__':
-    app.run(port=5005)
+    app.run(host='0.0.0.0', port=5005)

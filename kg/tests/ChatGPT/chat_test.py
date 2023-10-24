@@ -7,10 +7,9 @@ import openai
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-NEO4J_URI = "bolt://localhost:7687"
+NEO4J_URI = "bolt://neo4j:7687"
 NEO4J_AUTH = ('neo4j', 'ioana123')
-sys.path.append(os.path.dirname(os.path.abspath('/home/ioana/kg_repo/kg/Neo4JConnector')))
-sys.path.append(os.path.dirname(os.path.abspath('/home/ioana/kg_repo/kg/tests/utils.py')))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from Neo4JConnector.NeoAlgorithms import (NeoAlgorithms)
 from Neo4JConnector.NeoConnector import (NeoConnector)

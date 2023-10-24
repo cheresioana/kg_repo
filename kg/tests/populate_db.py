@@ -13,7 +13,7 @@ from nltk.tokenize import word_tokenize
 nltk.download('punkt')
 nltk.download('stopwords')'''
 from urllib.parse import urlparse
-sys.path.append(os.path.dirname(os.path.abspath('/home/ioana/kg_repo/kg/Neo4JConnector')))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from Neo4JConnector.NeoConnector import NeoConnector
 
 
@@ -140,8 +140,8 @@ def get_simple_keywords(row):
     return entities
 
 
-if __name__ == '__main__':
-    df = pd.read_csv('../data/data_with_embeddings.csv')
+def populate():
+    df = pd.read_csv('data/data_with_embeddings.csv')
     connector = NeoConnector()
     i = 0
 
@@ -172,8 +172,12 @@ if __name__ == '__main__':
         #connector.insert_statement_entities(row['id'], keywords)
         print(i)
         i = i + 1
+        #if i > 30:
+        #    return 0
 
-
-        # exit(0)
+        #exit(0)
         # connector.insert_statement_entities(row, news_entities)
     # connector.set_similarity()
+
+if __name__ == '__main__':
+    populate()

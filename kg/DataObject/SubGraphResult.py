@@ -47,17 +47,6 @@ class Link:
         self.value = value
 
 
-class SubGraph:
-    origin: List[Node]
-    nodes: List[Node]
-    links: List[Link]
-
-    def __init__(self, origin: List[Node], nodes: List[Node], links: List[Link]):
-        self.origin = origin
-        self.nodes = nodes
-        self.links = links
-
-
 class ResultItem:
     weight: int
     intra_id: int
@@ -69,8 +58,10 @@ class ResultItem:
     date: str
     channel: str
     location: str
+    url: str
 
-    def __init__(self, weight, intra_id, query_id, statement, nodes, links, selected=0, date="", channel="", location=""):
+    def __init__(self, weight, intra_id, query_id, statement, nodes, links,
+                 selected=0, date="", channel="", location="", url=""):
         self.weight = weight
         self.intra_id = intra_id
         self.query_id = query_id
@@ -81,22 +72,7 @@ class ResultItem:
         self.date = date
         self.channel = channel
         self.location = location
-
-
-class SubGraphResult:
-    keywords: List[str]
-    subgraf: SubGraph
-    debunk: str
-    raw_results: List[ResultItem]
-
-    def __init__(self, keywords: List[str], subgraf: SubGraph, debunk: str, raw_results: List[ResultItem]):
-        self.keywords = keywords
-        self.subgraf = subgraf
-        self.debunk = debunk
-        self.raw_results = raw_results
-
-    def to_json(self, indent=4):
-        return json.dumps(self, cls=ComplexEncoder, indent=indent)
+        self.url = url
 
 
 class ComplexEncoder(json.JSONEncoder):
@@ -104,4 +80,3 @@ class ComplexEncoder(json.JSONEncoder):
         if isinstance(obj, (Node, Link, ResultItem)):
             return obj.__dict__
         return super(ComplexEncoder, self).default(obj)
-

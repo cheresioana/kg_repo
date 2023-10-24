@@ -4,8 +4,7 @@ import sys
 from flask import Flask, jsonify, request
 import json
 from flask_cors import CORS
-
-sys.path.append(os.path.dirname(os.path.abspath('/home/ioana/kg_repo/Aggregator/knowledge_extraction')))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from knowledge_extraction.EntityExtractor import EntityExtractor
 
 app = Flask(__name__)
@@ -38,4 +37,4 @@ def get_keywords():
 
 
 if __name__ == '__main__':
-    app.run(port=5006)
+    app.run(host='0.0.0.0', port=5006)

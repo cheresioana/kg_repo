@@ -5,11 +5,11 @@ import requests
 from openai.embeddings_utils import cosine_similarity
 
 from ChatGPT.OpenAIEmbeddingWrapper import OpenAIEmbeddingWrapper
-from DataObject.SubGraphResult import SubGraphResult, Node, Link, SubGraph, ResultItem
+from DataObject.SubGraphResult import Node, Link,ResultItem
 from Neo4JConnector.NeoAlgorithms import NeoAlgorithms
 from Neo4JConnector.NeoConnector import NeoConnector
 from utils import clean_text
-
+from constanst import AGGREGATOR_URL
 
 class SearchEngine():
     def __init__(self):
@@ -18,7 +18,7 @@ class SearchEngine():
         self.neo_algo = NeoAlgorithms()
 
     def insert_query_elements(self, query):
-        response = requests.post("http://127.0.0.1:5006/keywords", json={'statement': query})
+        response = requests.post(AGGREGATOR_URL, json={'statement': query})
         if response.status_code == 200:
             entities = response.json()
             query_node = self.neo_connector.insert_search_statement(query)
@@ -72,52 +72,13 @@ class SearchEngine():
                                               row["intra_id"],
                                               query_id, row["statement"],
                                               nodes, links, date=row["date"],
-                                              channel=channel, location=location))
+                                              channel=channel, location=location,
+                                              url=row["url"]))
 
         sorted_data = sorted(results, key=lambda x: x.weight)
         return sorted_data
 
-    # def transform_results_subgraph(self, query_node, results_raw, query_entities):
-    #     origin = []
-    #     nodes = []
-    #     links = []
-    #     results = results_raw[:3]
-    #     origin.append(query_node)
-    #     nodes.append(query_node)
-    #     for result in results:
-    #         for path in result["paths"]:
-    #             # here if next paths in the graph are larger than the smallest do not take that option
-    #             if path["weight"] > result["weight"]:
-    #                 continue
-    #             index = 0
-    #             previous_node = None
-    #             for element in path['path']:
-    #                 if index % 2 == 0 and index > 0:
-    #                     # The node is of type tag
-    #                     if element.get('name') is not None:
-    #                         new_node = Node(element["intra_id"], element["name"],
-    #                                         element["intra_id"], tag="key_element")
-    #                     # the node is of type fake statement
-    #                     else:
-    #                         new_node = Node(element["id"], element["statement"],
-    #                                         element["intra_id"], tag="statement_node")
-    #                     if new_node not in nodes:
-    #                         nodes.append(new_node)
-    #                     # if there is a previous node add link between the current and previous
-    #                     if previous_node is not None:
-    #                         links.append(Link(new_node.id, previous_node.id))
-    #                     # if there is not than that means it is connected to the origin
-    #                     else:
-    #                         links.append(Link(new_node.id, query_node.id))
-    #                     previous_node = new_node
-    #                 index = index + 1
-    #
-    #     keywords = list(itertools.chain.from_iterable(query_entities.values()))
-    #     subgraph = SubGraph(origin, nodes, links)
-    #
-    #     subgraphResult = SubGraphResult(keywords, subgraph, 'No debunk', results_raw)
-    #     print(results_raw)
-    #     return subgraphResult
+
 
     def find_results(self, query):
         clean_query = clean_text(query)

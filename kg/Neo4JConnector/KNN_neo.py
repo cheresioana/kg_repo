@@ -1,16 +1,15 @@
 import os
 from graphdatascience import GraphDataScience
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from constanst import NEO4J_URI, NEO4J_AUTH
 
 if __name__ == '__main__':
-    NEO4J_URI = "bolt://localhost:7687"
 
-
-    NEO4J_AUTH = (
-        'neo4j', 'ioana123'
-    )
 
     gds = GraphDataScience(NEO4J_URI, auth=NEO4J_AUTH)
-    gds.set_database("news")
+    gds.set_database("neo4j")
 
     node_projection = ["Person", "Fake_Statement", "Entity"]
     relationship_projection = {"HAS_KEYWORD": {"orientation": "UNDIRECTED"}}

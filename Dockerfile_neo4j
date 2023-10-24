@@ -1,0 +1,7 @@
+FROM neo4j:latest
+
+# Copy the initialization script
+COPY init.sh /var/lib/neo4j/init.sh
+
+# Provide execute permissions
+RUN chmod +x /var/lib/neo4j/init.sh

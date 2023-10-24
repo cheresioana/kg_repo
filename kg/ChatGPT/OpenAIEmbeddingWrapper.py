@@ -1,13 +1,17 @@
+import sys
 import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 import openai
 import pandas as pd
 
 from utils import clean_text
 from openai.embeddings_utils import get_embedding, cosine_similarity
 
+from constanst import OPENAI_API_KEY
+
 class OpenAIEmbeddingWrapper:
     def __init__(self):
-        openai.api_key = os.environ.get('OPENAI_API_KEY')
+        openai.api_key = OPENAI_API_KEY
 
     def init_embeddings_from_csv(self, file_name='data/data2.csv'):
         df = pd.read_csv(file_name)

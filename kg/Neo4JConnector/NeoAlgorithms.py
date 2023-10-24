@@ -1,20 +1,23 @@
 from Neo4JConnector.NeoConnector import NeoConnector
 
-NEO4J_URI = "bolt://localhost:7687"
-
-NEO4J_AUTH = ('neo4j', 'ioana123')
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from constanst import NEO4J_URI, NEO4J_AUTH
 from graphdatascience import GraphDataScience
+
+
 class NeoAlgorithms(NeoConnector):
     def run_louvain(self):
         DROP_IF_EXISTS = '''
-        USE news
+        USE neo4j
         CALL gds.graph.drop('myGraph', false) YIELD graphName;
         '''
         with self.driver.session() as session:
             records, summary, keys = self.driver.execute_query(DROP_IF_EXISTS)
 
         CREATE_PROJECTION_QUERY = '''
-        USE news
+        USE neo4j
         CALL gds.graph.project(
         'myGraph',
         ['Fake_Statement', 'Entity', 'Person'],
@@ -29,7 +32,7 @@ class NeoAlgorithms(NeoConnector):
 
 
         WRITE_COMMUNITY = '''
-        USE news
+        USE neo4j
         CALL gds.louvain.write('myGraph', { writeProperty: 'community' })
         YIELD communityCount, modularity, modularities
         '''
@@ -42,7 +45,7 @@ class NeoAlgorithms(NeoConnector):
             
     def find_dijkstra_path(self, start_id, end_id):
         FIND_PATH = '''
-            USE news
+            USE neo4j
             MATCH (a:Fake_Statement), (b:Fake_Statement)
             WHERE ID(a) = $start_id AND ID(b) = $end_id
             CALL apoc.algo.dijkstra(a, b, 'HAS_KEYWORD', "weight", 1, 2) YIELD path, weight
@@ -63,7 +66,7 @@ class NeoAlgorithms(NeoConnector):
         with self.driver.session() as session:
             records, summary, keys = self.driver.execute_query(
                 querry,
-                database_="news", id=id
+                database_="neo4j", id=id
             )
             elements = [p.data() for p in records]
             return elements
@@ -78,14 +81,14 @@ class NeoAlgorithms(NeoConnector):
         with self.driver.session() as session:
             records, summary, keys = self.driver.execute_query(
                 querry,
-                database_="news", id=id
+                database_="neo4j", id=id
             )
             elements = [p.data() for p in records]
             return elements
 
     def knn(self):
         gds = GraphDataScience(NEO4J_URI, auth=NEO4J_AUTH)
-        gds.set_database("news")
+        gds.set_database("neo4j")
 
         node_projection = ["Person", "Fake_Statement", "Entity"]
         relationship_projection = {"HAS_KEYWORD": {"orientation": "UNDIRECTED"}}
