@@ -13,7 +13,7 @@ COPY model.proto client.py /app/
 COPY . /app
 COPY model.proto /model.proto
 
-COPY license.json /license.json
+# COPY license.json /license.json
 
 # Install any needed packages specified in requirements.txt
 #RUN pip install -r requirements.txt

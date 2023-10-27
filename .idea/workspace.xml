@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="021faaac-aabe-4448-86d3-384a25bdf1f7" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/AI4EUExperiments-Sudoku-Tutorial.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Aggregator/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/Aggregator/Dockerfile" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Aggregator/grpc/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/Aggregator/grpc/Dockerfile" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/LICENSE" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Tutorial-Cheatsheet.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Tutorial-Video.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/aspsolver/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/aspsolver/Dockerfile" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/aspsolver/asp.proto" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/aspsolver/config.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/aspsolver/license.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/aspsolver/requirements.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/aspsolver/run-aspsolver-without-docker.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/aspsolver/server.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/aspsolver/test.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/create-conda-environment.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/evaluator/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/evaluator/Dockerfile" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/evaluator/config.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/evaluator/license.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/evaluator/requirements.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/evaluator/run-evaluator-without-docker.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/evaluator/server.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/evaluator/sudoku-design-evaluator.proto" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/evaluator/test.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/gui/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/gui/Dockerfile" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/gui/config.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/gui/gui.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/gui/gui.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/gui/license.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/gui/requirements.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/gui/run-gui-without-docker.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/gui/server.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/gui/sudoku-gui.proto" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/gui/templates/gui.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/gui/test.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/helper.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/orchestrator/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/orchestrator/config.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/orchestrator/orchestrator.proto" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/orchestrator/orchestrator.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/orchestrator/othread.py" beforeDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
+  <component name="ProjectId" id="2XL0dRu0xtCskgJFXUtSt35KAc2" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "last_opened_file_path": "D:/proiecte/Mindbugs/ourPorject"
+  }
+}]]></component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="021faaac-aabe-4448-86d3-384a25bdf1f7" name="Changes" comment="" />
+      <created>1698393139173</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1698393139173</updated>
+    </task>
+    <servers />
+  </component>
+</project>
