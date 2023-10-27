@@ -251,10 +251,13 @@ def simple_analyze(statement):
     js_to_protobuf_queue.put(my_statement)
     print("... sent")
     print("wait_update")
+    logging.warning("sending ...")
+    logging.warning("wait_update ...")
     while True:
         try:
 
             ret = protobuf_to_js_queue.get(block=True, timeout=1)
+            logging.info("GUI got update from protobuf! ...")
             print("GUI got update from protobuf!")
             print(ret)
             break
@@ -263,6 +266,7 @@ def simple_analyze(statement):
 
 
     entities = grpc_message_to_dict(ret)
+    logging.warning("dict format")
     print("dict format")
     print(entities)
     new_dic = {}
@@ -272,12 +276,20 @@ def simple_analyze(statement):
         print(ent['values'])
         new_dic[ent['type']] = ent['values']
 
+    logging.warning("converted dict")
     print('converted dict')
     print(new_dic)
 
     json_str = json.dumps(new_dic, cls=ComplexEncoder, indent=4)
     return json_str
 
+@app.route('/test', methods=['GET'])
+def ok():
+    return "ok"
+
+@app.route('/', methods=['GET'])
+def hello():
+    return "Hello to Mindbugs Discovery. Try /simple_analyze/your Statement"
 
 
 class MainKGImp(grcp_pb.MainKG):
