@@ -1,13 +1,23 @@
 import sys
 import os
+import threading
+import traceback
+import time
+import queue
 
 from DataObject.SubGraphResult import ComplexEncoder, ResultItem, Node, Link
 
-sys.path.append(os.path.dirname(os.path.abspath('/home/ioana/kg_repo/kg/SearchEngine')))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from SearchEngine import SearchEngine
 
-sys.path.append(os.path.dirname(os.path.abspath('/home/ioana/kg_repo/kg/ChatGPT')))
-sys.path.append(os.path.dirname(os.path.abspath('/home/ioana/kg_repo/kg/Neo4JConnector')))
+try:
+    from _queue import SimpleQueue
+except ImportError:
+    SimpleQueue = None
+import grpc
+from concurrent import futures
+import data_formats_pb2 as pb
+import data_formats_pb2_grpc as grcp_pb
 import random
 from collections import Counter
 from flask import Flask, jsonify, request
@@ -18,6 +28,7 @@ from Neo4JConnector.NeoConnector import (NeoConnector)
 from ChatGPT.ChatGPTWrapper import ChatGPTWrapper
 from Neo4JConnector.NeoAlgorithms import (NeoAlgorithms)
 import pandas as pd
+import logging
 
 app = Flask(__name__)
 
@@ -26,7 +37,7 @@ connector = NeoConnector()
 chat = ChatGPTWrapper()
 CORS(app)
 
-df = pd.read_csv('data/data2.csv')
+df = pd.read_csv('../data/data2.csv')
 
 
 @app.route('/sample_kg', methods=['GET'])
@@ -59,11 +70,9 @@ def get_similar_kg(id):
     return jsonify(similar_list)
 
 
-@app.route('/analyze', methods=['POST'])
-def analyze():
-    data = request.get_json()
-    print(data)
-    print(data['statement'])
+@app.route('/analyze/<statement>', methods=['GET'])
+def analyze(statement):
+    data = {"statement": statement}
     response = requests.post("http://127.0.0.1:5006/keywords", json=data)
     if response.status_code == 200:
         entities = response.json()
@@ -106,11 +115,17 @@ def analyze():
     return jsonify([])
 
 
-@app.route('/analyze2', methods=['POST'])
-def analyze2():
-    data = request.get_json()
+@app.route('/analyze2/<statement>', methods=['GET'])
+def analyze2(statement):
+    print("Statement received")
+    print(statement)
     search_engine = SearchEngine()
-    keywords, show_links, show_nodes, path_result, origin_node = search_engine.find_results(data['statement'])
+    my_statement = pb.Statement()
+    my_statement.type = statement
+    js_to_protobuf_queue.put(my_statement)
+    print("... sent")
+
+    '''keywords, show_links, show_nodes, path_result, origin_node = search_engine.find_results(statement)
     json_response = {
         'origin': [origin_node],
         'keywords': keywords,
@@ -121,7 +136,8 @@ def analyze2():
     json_str = json.dumps(json_response, cls=ComplexEncoder, indent=4)
     with open("mihai.json", "w") as json_file:
         json.dump(json_response, json_file, cls=ComplexEncoder, indent=2)
-    return json_str
+    return json_str'''
+    return None
 
 
 @app.route('/node_info/<id>', methods=['GET'])
@@ -151,7 +167,7 @@ def addStatement():
             item_data['statement'],
             [Node(**node) for node in item_data['nodes']],  # Convert each dict to a Node instance
             [Link(**link) for link in item_data['links']],  # Convert each dict to a Link instance
-            selected=item_data.get('selected', 0),# using .get() in case 'selected' is not present
+            selected=item_data.get('selected', 0),  # using .get() in case 'selected' is not present
             date=item_data.get('date', ""),
             channel=item_data.get('channel', ""),
             location=item_data.get('location', "")
@@ -235,5 +251,49 @@ def removeStatement():
     json_str = json.dumps(json_response, cls=ComplexEncoder, indent=4)
     return json_str
 
+
+class MainKGImp(grcp_pb.MainKG):
+    def __init__(self, to_protobuf_queue, to_js_queue):
+        self.to_protobuf_queue = to_protobuf_queue
+        self.to_js_queue = to_js_queue
+
+    def RequestKeywords(self, request, context):
+        print("Enters request keywords")
+        try:
+            while True:
+                try:
+
+                    # make sure we notice that the connection is gone if the orchestrator dies
+                    ret = self.to_protobuf_queue.get(block=True, timeout=1.0)
+                    print("received ret")
+                    print(ret)
+                    return ret
+                except queue.Empty:
+                    if not context.is_active():
+                        raise RuntimeError("RPC interrupted - leaving requestSudokuEvaluation")
+                    # otherwise continue
+        except Exception:
+            print("got exception %s", traceback.format_exc())
+            time.sleep(1)
+            pass
+
+
+protobuf_to_js_queue = queue.Queue()
+js_to_protobuf_queue = queue.Queue()
+
+
+def serve():
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    grcp_pb.add_MainKGServicer_to_server(MainKGImp(js_to_protobuf_queue, protobuf_to_js_queue), server)
+    server.add_insecure_port('[::]:8061')  # Change the port if needed
+    server.start()
+    server.wait_for_termination()
+
+
 if __name__ == '__main__':
-    app.run(port=8082)
+    grpc_thread = threading.Thread(target=serve)
+    print("Started server")
+    grpc_thread.start()
+
+    app.run(port=8062, use_reloader=False)
+    grpc_thread.join()

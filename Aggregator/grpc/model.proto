@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+message Empty {
+}
+
+message Statement {
+  string type = 1;
+}
+
+message Entity {
+  string type = 1;
+  repeated string values = 2;
+}
+
+message EntityResponse {
+  repeated Entity entities = 1;
+}
+
+service ClientService {
+  rpc RequestKeywords(Empty) returns (Statement);
+}

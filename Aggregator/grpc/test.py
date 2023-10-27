@@ -1,6 +1,6 @@
 import grpc
-import data_formats_client_pb2 as pb
-import data_formats_client_pb2_grpc as pb_grcp
+import model_pb2 as pb
+import model_pb2_grpc as pb_grcp
 
 
 class ClientApp:

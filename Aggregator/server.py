@@ -8,6 +8,8 @@ extractor = EntityExtractor()
 
 
 class Main(grcp_pb.MainService):
+    def __int__(self):
+        pass
     def GetKeywords(self, request, context):
         data_type = request.type
         entities = extractor.extract_entities(data_type)
