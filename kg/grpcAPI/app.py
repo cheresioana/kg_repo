@@ -255,10 +255,11 @@ def simple_analyze(statement):
     logging.warning("wait_update ...")
     while True:
         try:
-
+            logging.warning('A intrat in try')
             ret = protobuf_to_js_queue.get(block=True, timeout=1)
-            logging.info("GUI got update from protobuf! ...")
+            logging.warning("GUI got update from protobuf! ...")
             print("GUI got update from protobuf!")
+            logging.warning(ret)
             print(ret)
             break
         except queue.Empty:
@@ -285,10 +286,12 @@ def simple_analyze(statement):
 
 @app.route('/test', methods=['GET'])
 def ok():
+    logging.warning("Aici Test")
     return "ok"
 
 @app.route('/', methods=['GET'])
 def hello():
+    logging.warning("Aici Main")
     return "Hello to Mindbugs Discovery. Try /simple_analyze/your Statement"
 
 
@@ -298,6 +301,7 @@ class MainKGImp(grcp_pb.MainKG):
         self.to_js_queue = to_js_queue
 
     def RequestKeywords(self, request, context):
+        logging.warning('Request key e chemat')
         print("Enters request keywords")
         try:
             while True:
@@ -306,6 +310,8 @@ class MainKGImp(grcp_pb.MainKG):
                     # make sure we notice that the connection is gone if the orchestrator dies
                     ret = self.to_protobuf_queue.get(block=True, timeout=1.0)
                     print("received ret")
+                    logging.warning("received ret")
+                    logging.warning(ret)
                     print(ret)
                     return ret
                 except queue.Empty:
@@ -318,7 +324,9 @@ class MainKGImp(grcp_pb.MainKG):
             pass
 
     def ReceiveKeywords(self, request, context):
+        logging.warning('Recive keywords')
         print("Enters receive keywords")
+        logging.warning(request)
         print(request)
         self.to_js_queue.put(request)
         empty = pb.Empty()
