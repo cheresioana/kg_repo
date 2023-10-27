@@ -119,7 +119,7 @@ class SearchEngine():
     #     print(results_raw)
     #     return subgraphResult
 
-    def find_results(self, query):
+    def find_results(self, query, query_node, query_entities):
         clean_query = clean_text(query)
         query_embedding = self.embeddingWrapper.get_embedding(clean_query)
         statements = self.neo_connector.get_statements_vectors()
@@ -130,7 +130,7 @@ class SearchEngine():
             .head(10)
         )
 
-        query_node, query_entities = self.insert_query_elements(query)
+        #query_node, query_entities = self.insert_query_elements(query)
 
         if query_node is not None:
             path_result = self.compute_paths(query_node.intra_id, results)

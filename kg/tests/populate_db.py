@@ -139,9 +139,8 @@ def get_simple_keywords(row):
 
     return entities
 
-
-if __name__ == '__main__':
-    df = pd.read_csv('../data/data_with_embeddings.csv')
+def populate_db(file_name):
+    df = pd.read_csv(file_name)
     connector = NeoConnector()
     i = 0
 
@@ -169,9 +168,12 @@ if __name__ == '__main__':
             base_url = parsed_url.netloc
             connector.insert_channel(record_id, base_url)
 
-        #connector.insert_statement_entities(row['id'], keywords)
+        # connector.insert_statement_entities(row['id'], keywords)
         print(i)
         i = i + 1
+
+if __name__ == '__main__':
+    populate_db('../data/data_with_embeddings.csv')
 
 
         # exit(0)

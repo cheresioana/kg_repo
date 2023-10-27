@@ -18,4 +18,5 @@ message EntityResponse {
 
 service MainKG {
   rpc RequestKeywords(Empty) returns (Statement);
+  rpc ReceiveKeywords(EntityResponse) returns (Empty);
 }
