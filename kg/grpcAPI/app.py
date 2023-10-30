@@ -113,17 +113,21 @@ def simple_analyze():
     print('converted dict')
     print(new_dic)
 
-
+    logging.warning("clean query")
     clean_query = clean_text(statement)
+    logging.warning("Query embedding")
     query_embedding = embeddingWrapper.get_embedding(clean_query)
     print(len(query_embedding))
 
     print(df.iloc[0]['embedding'])
+    logging.warning("similarity")
     df["similarity"] = df['embedding'].apply(lambda x: cosine_similarity(x, query_embedding))
+    logging.warning(df.shape)
     results = (
         df.sort_values("similarity", ascending=False)
         .head(5)
     )
+    logging.warning(results)
     new_dic['statements'] = results['statement'].tolist()
 
     json_str = json.dumps(new_dic, cls=ComplexEncoder, indent=4)
