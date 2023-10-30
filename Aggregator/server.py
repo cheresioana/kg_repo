@@ -1,4 +1,5 @@
 import logging
+import threading
 
 import grpc
 from concurrent import futures
@@ -7,12 +8,32 @@ import data_formats_pb2_grpc as grcp_pb
 from classifier.classifier import predict_statement, retrain_model
 from knowledge_extraction.EntityExtractor import EntityExtractor
 
+from flask import Flask, jsonify, request
+import json
+from flask_cors import CORS
+
 extractor = EntityExtractor()
+
+app = Flask(__name__)
+
+CORS(app)
+
+
+@app.route('/retrain', methods=['GET'])
+def retrain():
+    acc = retrain_model()
+    return str(acc)
+
+@app.route('/', methods=['GET'])
+def hello():
+    logging.warning("Aici Main AGG")
+    return "this is aggregator. Try /retrain"
 
 
 class Main(grcp_pb.MainService):
     def __int__(self):
         pass
+
     def GetKeywords(self, request, context):
         logging.warning("Suntem in get keyords aggregator")
         data_type = request.type
@@ -39,7 +60,6 @@ class Main(grcp_pb.MainService):
         return accuracy
 
 
-
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     grcp_pb.add_MainServiceServicer_to_server(Main(), server)
@@ -50,4 +70,9 @@ def serve():
 
 
 if __name__ == '__main__':
-    serve()
+    grpc_thread = threading.Thread(target=serve)
+    print("Started server")
+    grpc_thread.start()
+
+    app.run(host="0.0.0.0", port=8062, use_reloader=False)
+    grpc_thread.join()

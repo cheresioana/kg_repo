@@ -23,7 +23,7 @@ import data_formats_pb2 as pb
 import data_formats_pb2_grpc as grcp_pb
 import random
 from collections import Counter
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, render_template
 import json
 from flask_cors import CORS
 import requests
@@ -61,8 +61,11 @@ def grpc_message_to_dict(message):
     return message_dict
 
 
-@app.route('/simple_analyze/<statement>', methods=['GET'])
-def simple_analyze(statement):
+@app.route('/simple_analyze/', methods=['GET'])
+def simple_analyze():
+    statement = request.args.get('statement')
+    if not statement:
+        return "No statement Provided"
     print("Statement received")
     print(statement)
     my_statement = pb.Statement()
@@ -135,7 +138,7 @@ def ok():
 @app.route('/', methods=['GET'])
 def hello():
     logging.warning("Aici Main")
-    return "Hello to Mindbugs Discovery. Try /simple_analyze/your Statement"
+    return render_template('index.html')
 
 
 class MainKGImp(grcp_pb.MainKG):

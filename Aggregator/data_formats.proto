@@ -24,5 +24,4 @@ message Command {
 
 service MainService {
   rpc GetKeywords(Statement) returns (EntityResponse);
-  rpc RetrainModel(Command) returns (Accuracy);
 }

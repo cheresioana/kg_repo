@@ -28,6 +28,4 @@ message Accuracy {
 service MainKG {
   rpc RequestKeywords(Empty) returns (Statement);
   rpc ReceiveKeywords(EntityResponse) returns (Empty);
-  rpc RequestTrain(Empty) returns (Command);
-  rpc ReceiveAcc(Accuracy) returns (Empty);
 }
