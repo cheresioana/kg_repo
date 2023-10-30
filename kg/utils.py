@@ -1,5 +1,9 @@
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
+import nltk
+
+nltk.download('punkt')
+nltk.download('stopwords')
 
 from constanst import MAX_TOKENS
 
