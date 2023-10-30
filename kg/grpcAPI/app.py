@@ -1,11 +1,17 @@
+import ast
 import sys
 import os
 import threading
 import traceback
 import time
 import queue
-
+import numpy as np
+from openai.embeddings_utils import cosine_similarity
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from ChatGPT.OpenAIEmbeddingWrapper import OpenAIEmbeddingWrapper
+from utils import clean_text
+
+
 from DataObject.SubGraphResult import ComplexEncoder, ResultItem, Node, Link
 
 # from tests.populate_db import populate_db
@@ -60,6 +66,11 @@ def grpc_message_to_dict(message):
 
     return message_dict
 
+embeddingWrapper = OpenAIEmbeddingWrapper()
+df = pd.read_csv("data/data_with_embeddings.csv")
+df = df[["statement", "embedding"]]
+df = df.dropna()
+df['embedding'] = df['embedding'].apply(lambda x: [float(i) for i in ast.literal_eval(x)])
 
 @app.route('/simple_analyze/', methods=['GET'])
 def simple_analyze():
@@ -102,31 +113,23 @@ def simple_analyze():
     print('converted dict')
     print(new_dic)
 
+
+    clean_query = clean_text(statement)
+    query_embedding = embeddingWrapper.get_embedding(clean_query)
+    print(len(query_embedding))
+
+    print(df.iloc[0]['embedding'])
+    df["similarity"] = df['embedding'].apply(lambda x: cosine_similarity(x, query_embedding))
+    results = (
+        df.sort_values("similarity", ascending=False)
+        .head(5)
+    )
+    new_dic['statements'] = results['statement'].tolist()
+
     json_str = json.dumps(new_dic, cls=ComplexEncoder, indent=4)
     return json_str
 
 
-@app.route('/retrain', methods=['GET'])
-def retrain():
-    my_commnad = pb.Command()
-    js_to_protobuf_queue2.put(my_commnad)
-    print("... sent")
-    print("wait_update")
-    logging.warning("sending ...")
-    logging.warning("wait_update ...")
-    while True:
-        try:
-            logging.warning('A intrat in try')
-            ret = protobuf_to_js_queue2.get(block=True, timeout=1)
-            logging.warning("GUI got update from protobuf! ...")
-            print("GUI got update from protobuf!")
-            logging.warning(ret)
-            print(ret)
-            break
-        except queue.Empty:
-            pass
-
-    return "Accuracy: " + str(ret.acc)
 
 
 @app.route('/test', methods=['GET'])
@@ -142,11 +145,10 @@ def hello():
 
 
 class MainKGImp(grcp_pb.MainKG):
-    def __init__(self, to_protobuf_queue, to_js_queue, to_protobuf_queue2, to_js_queue2):
+    def __init__(self, to_protobuf_queue, to_js_queue):
         self.to_protobuf_queue = to_protobuf_queue
         self.to_js_queue = to_js_queue
-        self.to_protobuf_queue2 = to_protobuf_queue2
-        self.to_js_queue2 = to_js_queue2
+
 
     def RequestKeywords(self, request, context):
         logging.warning('Request key e chemat')
@@ -180,55 +182,15 @@ class MainKGImp(grcp_pb.MainKG):
         empty = pb.Empty()
         return empty
 
-    def RequestTrain(self, request, context):
-        logging.warning('Request train e chemat')
-        print("Enters request train")
-        try:
-            while True:
-                try:
-
-                    # make sure we notice that the connection is gone if the orchestrator dies
-                    ret = self.to_protobuf_queue2.get(block=True, timeout=1.0)
-                    print("received ret")
-                    logging.warning("received ret")
-                    logging.warning(ret)
-                    print(ret)
-                    return ret
-                except queue.Empty:
-                    if not context.is_active():
-                        raise RuntimeError("RPC interrupted - leaving requestSudokuEvaluation")
-                    # otherwise continue
-        except Exception:
-            print("got exception %s", traceback.format_exc())
-            time.sleep(1)
-            pass
-
-    def ReceiveAcc(self, request, context):
-        logging.warning('Recive train')
-        print("Enters receive keywords")
-        logging.warning(request)
-        print(request)
-        self.to_js_queue2.put(request)
-        empty = pb.Empty()
-        return empty
-
-    '''
-     rpc RequestTrain(Empty) returns (Command);
-      rpc ReceiveAcc(Accuracy) returns (Empty);
-    '''
-
 
 protobuf_to_js_queue = queue.Queue()
 js_to_protobuf_queue = queue.Queue()
-
-protobuf_to_js_queue2 = queue.Queue()
-js_to_protobuf_queue2 = queue.Queue()
 
 
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     grcp_pb.add_MainKGServicer_to_server(
-        MainKGImp(js_to_protobuf_queue, protobuf_to_js_queue, js_to_protobuf_queue2, protobuf_to_js_queue2), server)
+        MainKGImp(js_to_protobuf_queue, protobuf_to_js_queue), server)
     server.add_insecure_port('[::]:8061')  # Change the port if needed
     server.start()
     server.wait_for_termination()

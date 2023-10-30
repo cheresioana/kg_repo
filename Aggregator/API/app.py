@@ -32,26 +32,14 @@ CORS(app)
 #
 #
 @app.route('/keywords', methods=['POST'])
-@fb(statement, parse_dict=True)
 def get_keywords():
-    print(request.data)
-    data = request.data
+    data = request.get_json()
     print(data)
-    print(data['type'])
-    entities = extractor.extract_entities(data['type'])
+    print(data['statement'])
+    entities = extractor.extract_entities(data['statement'])
     print(entities)
-    ent_response = pb.EntityResponse()
-    my_arr = []
-    for key in entities:
-        ent_obj = pb.Entity()
-        ent_obj.type=key
-        print(entities[key])
-        ent_obj.values.extend(entities[key])
-        my_arr.append(ent_obj)
-    ent_response.entities.extend(my_arr)
-    response_data = ent_response.SerializeToString()
-    print(response_data)
-    return response_data, 200, {'Content-Type': 'application/x-protobuf'}
+    return jsonify(entities)
+
 
     #return jsonify(entities)
 
