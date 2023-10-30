@@ -19,6 +19,15 @@ def run_client():
                 print("received response from aggregator")
                 print(response2)
             stub.ReceiveKeywords(response2)
+            request = pb.Empty()
+            response = stub.RequestTrain(request)
+            with grpc.insecure_channel('0.0.0.0:8063') as channel2:  # Change the address/port if needed
+                stub2 = grcp_pb.MainServiceStub(channel2)
+                logging.info("Send request keywords to the aggregator")
+                response2 = stub2.RetrainModel(response)
+                print("received response from aggregator")
+                print(response2)
+            stub.ReceiveAcc(response2)
 
 
 if __name__ == '__main__':

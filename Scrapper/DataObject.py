@@ -37,6 +37,8 @@ class DataObject:
         self.debunk_sources = []
         self.topic = ''
 
+        self.label = ''
+
     def __str__(self):
         return f"""DataObject(
     crawler_name={self.crawler_name},
@@ -62,6 +64,7 @@ class DataObject:
     debunking_argument={self.debunking_argument},
     fake_news_content={self.fake_news_content},
     summary_explanation={self.summary_explanation},
+    label={self.label},
     )"""
 
     def clean_str(self, my_str):
@@ -95,5 +98,6 @@ class DataObject:
             'fake_news_content': self.clean_str(self.fake_news_content),
             'summary_explanation': self.clean_str(self.summary_explanation),
             'debunking_argument': self.clean_str(self.debunking_argument),
+            'label': self.label
 
         }

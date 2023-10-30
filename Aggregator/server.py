@@ -4,6 +4,7 @@ import grpc
 from concurrent import futures
 import data_formats_pb2 as pb
 import data_formats_pb2_grpc as grcp_pb
+from classifier.classifier import predict_statement, retrain_model
 from knowledge_extraction.EntityExtractor import EntityExtractor
 
 extractor = EntityExtractor()
@@ -28,8 +29,15 @@ class Main(grcp_pb.MainService):
             entity.type = key
             entity.values.extend(values)
             response.entities.append(entity)
-
+        response.label = predict_statement(data_type)
         return response
+
+    def RetrainModel(self, request, context):
+        acc = retrain_model()
+        accuracy = pb.Accuracy()
+        accuracy.acc = acc
+        return accuracy
+
 
 
 def serve():

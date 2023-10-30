@@ -14,9 +14,20 @@ message Entity {
 
 message EntityResponse {
   repeated Entity entities = 1;
+  string label = 2;
+}
+
+message Command {
+   string type = 1;
+}
+
+message Accuracy {
+  float acc = 1;
 }
 
 service MainKG {
   rpc RequestKeywords(Empty) returns (Statement);
   rpc ReceiveKeywords(EntityResponse) returns (Empty);
+  rpc RequestTrain(Empty) returns (Command);
+  rpc ReceiveAcc(Accuracy) returns (Empty);
 }

@@ -35,6 +35,8 @@ class DataObject:
         self.debunk_sources = []
         self.topic = ''
 
+        self.label = ''
+
     def init_from_json(self, j):
         self.__dict__ = json.loads(j)
 
@@ -63,6 +65,7 @@ class DataObject:
     debunking_argument={self.debunking_argument},
     fake_news_content={self.fake_news_content},
     summary_explanation={self.summary_explanation},
+    label={self.label},
     )"""
 
     def json_encoder(self):
@@ -91,4 +94,5 @@ class DataObject:
             'fake_news_content': self.fake_news_content,
             'summary_explanation': self.summary_explanation,
             'debunking_argument': self.debunking_argument,
+            'label': self.label
         }

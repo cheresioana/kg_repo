@@ -4,7 +4,7 @@ import data_formats_pb2_grpc as grcp_pb
 
 
 def run_client():
-    with grpc.insecure_channel('0.0.0.0:8063') as channel:  # Change the address/port if needed
+    with grpc.insecure_channel('0.0.0.0:8061') as channel:  # Change the address/port if needed
         stub = grcp_pb.MainServiceStub(channel)
 
         # Prepare a request
@@ -16,9 +16,14 @@ def run_client():
             response = stub.GetKeywords(request)
 
             # Process the response here, e.g., print it
+            print(response.label)
             for entity in response.entities:
                 print(f"Entity Type: {entity.type}")
                 print(f"Values: {entity.values}")
+
+        request = pb.Command()
+        response = stub.RetrainModel(request)
+        print(response)
 
 
 if __name__ == '__main__':

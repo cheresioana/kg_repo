@@ -52,7 +52,8 @@ def extract_name(soup):
         return image["alt"]
     return ""
 
-#parse the content page of the article
+
+# parse the content page of the article
 def parse_news_page(data_object, link):
     page = requests.get(link)
     soup = BeautifulSoup(page.content, 'html.parser')
@@ -78,7 +79,8 @@ def parse_news_page(data_object, link):
         my_text = parent.text.replace("Narațiune cheie:", '').strip().lower()
         data_object.narrative.append(unidecode(my_text))
 
-#parse the table from each page from the veridica dataset
+
+# parse the table from each page from the veridica dataset
 def parse_table(table):
     global index, total_empty
     rows = table.find_all('tr')
@@ -95,6 +97,13 @@ def parse_table(table):
                     or "PROPAGANDA DE RAZBOI" in statement_parts[0]
                     or "DEZINFORMARE" in statement_parts[0]):
                 continue
+            if "FAKE NEWS" in statement_parts[0]:
+                data_object.label = "fake_news"
+            elif "PROPAGANDA DE RAZBOI" in statement_parts[0]:
+                data_object.label = "war_propaganda"
+            elif "DEZINFORMARE" in statement_parts[0]:
+                data_object.label = "disinformation"
+
             statement = ' '.join(statement.split(':')[1:])
             data_object.statement = statement
 
@@ -112,11 +121,11 @@ def parse_table(table):
             index = index + 1
         print(index)
 
-
         # if index > 0:
         #     exit(0)
 
-#iterate through all the pages by navigating always to the next page
+
+# iterate through all the pages by navigating always to the next page
 def crawl_summary_page(p):
     print(p)
     page = requests.get(p)
@@ -136,8 +145,7 @@ def crawl_summary_page(p):
     hrefs = []
 
 
-#Starting at the base link the recursive crawling of each page
+# Starting at the base link the recursive crawling of each page
 if __name__ == '__main__':
     pages = ['https://www.veridica.ro/baza-de-date']
     crawl_summary_page(pages[0])
-
