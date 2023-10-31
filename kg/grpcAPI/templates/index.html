@@ -5,13 +5,58 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mindbugs Discovery</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            width: 80%;
+            margin: auto;
+            overflow: hidden;
+        }
+        h1 {
+            color: #333;
+            padding-top: 30px;
+            text-align: center;
+        }
+        form {
+            max-width: 400px;
+            margin: 30px auto;
+            background: #fff;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+            margin-bottom: 20px;
+        }
+        button {
+            width: 100%;
+            background: #28a745;
+            color: #fff;
+            padding: 8px;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #218838;
+        }
+    </style>
 </head>
 <body>
-    <h1>Welcome to Mindbugs Discovery</h1>
-    <p>Analyze a statement:</p>
-    <form action="/simple_analyze/" method="get">
-        <input type="text" name="statement" required placeholder="Insert a statement">
-        <button type="submit">Analyze</button>
-    </form>
+    <div class="container">
+        <h1>Welcome to Mindbugs Discovery</h1>
+        <form action="/simple_analyze/" method="get">
+            <input type="text" name="statement" required placeholder="Insert a statement">
+            <button type="submit">Analyze</button>
+        </form>
+    </div>
 </body>
 </html>

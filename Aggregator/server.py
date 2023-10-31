@@ -26,8 +26,8 @@ def retrain():
 
 @app.route('/', methods=['GET'])
 def hello():
-    logging.warning("Aici Main AGG")
-    return "this is aggregator. Try /retrain"
+    acc = retrain_model()
+    return str(acc)
 
 
 class Main(grcp_pb.MainService):
