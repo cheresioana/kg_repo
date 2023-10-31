@@ -77,48 +77,6 @@ class SearchEngine():
         sorted_data = sorted(results, key=lambda x: x.weight)
         return sorted_data
 
-    # def transform_results_subgraph(self, query_node, results_raw, query_entities):
-    #     origin = []
-    #     nodes = []
-    #     links = []
-    #     results = results_raw[:3]
-    #     origin.append(query_node)
-    #     nodes.append(query_node)
-    #     for result in results:
-    #         for path in result["paths"]:
-    #             # here if next paths in the graph are larger than the smallest do not take that option
-    #             if path["weight"] > result["weight"]:
-    #                 continue
-    #             index = 0
-    #             previous_node = None
-    #             for element in path['path']:
-    #                 if index % 2 == 0 and index > 0:
-    #                     # The node is of type tag
-    #                     if element.get('name') is not None:
-    #                         new_node = Node(element["intra_id"], element["name"],
-    #                                         element["intra_id"], tag="key_element")
-    #                     # the node is of type fake statement
-    #                     else:
-    #                         new_node = Node(element["id"], element["statement"],
-    #                                         element["intra_id"], tag="statement_node")
-    #                     if new_node not in nodes:
-    #                         nodes.append(new_node)
-    #                     # if there is a previous node add link between the current and previous
-    #                     if previous_node is not None:
-    #                         links.append(Link(new_node.id, previous_node.id))
-    #                     # if there is not than that means it is connected to the origin
-    #                     else:
-    #                         links.append(Link(new_node.id, query_node.id))
-    #                     previous_node = new_node
-    #                 index = index + 1
-    #
-    #     keywords = list(itertools.chain.from_iterable(query_entities.values()))
-    #     subgraph = SubGraph(origin, nodes, links)
-    #
-    #     subgraphResult = SubGraphResult(keywords, subgraph, 'No debunk', results_raw)
-    #     print(results_raw)
-    #     return subgraphResult
-
     def find_results(self, query, query_node, query_entities):
         clean_query = clean_text(query)
         query_embedding = self.embeddingWrapper.get_embedding(clean_query)
