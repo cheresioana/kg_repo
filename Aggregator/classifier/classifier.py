@@ -100,7 +100,7 @@ class Classifier:
 
 def retrain_model():
     classifier = Classifier(retrain=1)
-    data = pd.read_csv('classifier/data.csv')
+    data = pd.read_csv('local_data.csv')
     data = data[['statement', 'label']]
     data = data.dropna()
     statements = data['statement'].tolist()

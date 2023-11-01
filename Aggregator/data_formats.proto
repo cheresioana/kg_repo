@@ -33,5 +33,4 @@ message DataObject {
 service MainService {
   rpc GetKeywords(Statement) returns (EntityResponse);
   rpc ReceiveData(DataObject) returns (Empty);
-  rpc RetrainModel(Empty) returns (Accuracy);
 }
