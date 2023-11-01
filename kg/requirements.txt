@@ -56,6 +56,7 @@ Pygments==2.15.1
 pyparsing==3.0.9
 pytextrank==3.2.4
 python-dateutil==2.8.2
+python-louvain==0.16
 pytz==2023.3
 regex==2023.6.3
 requests==2.31.0
