@@ -3,6 +3,7 @@ syntax = "proto3";
 message Empty {
 }
 
+
 message Statement {
   string type = 1;
 }
@@ -30,8 +31,6 @@ message DataObject {
    string label = 2;
 }
 
-service MainService {
-  rpc GetKeywords(Statement) returns (EntityResponse);
-  rpc ReceiveData(DataObject) returns (Empty);
-  rpc RetrainModel(Empty) returns (Accuracy);
+service DataService {
+  rpc GetData(Empty) returns (DataObject);
 }

@@ -7,7 +7,7 @@ import data_formats_pb2 as pb
 import data_formats_pb2_grpc as grcp_pb
 from classifier.classifier import predict_statement, retrain_model
 from knowledge_extraction.EntityExtractor import EntityExtractor
-
+import pandas as pd
 from flask import Flask, jsonify, request
 import json
 from flask_cors import CORS
@@ -29,6 +29,19 @@ def hello():
     logging.warning("Aici Main AGG")
     return "this is aggregator. Try /retrain"
 
+@app.route('/data', methods=['GET'])
+def get_data():
+    # Read the DataFrame from the CSV file
+    try:
+        df = pd.read_csv('local_data.csv')
+
+        # Convert the DataFrame to a JSON object
+        data_json = df.to_json(orient='records')
+    except:
+        data_json = "no data received yet"
+
+    # Return the JSON response
+    return jsonify(data_json)
 
 class Main(grcp_pb.MainService):
     def __int__(self):
@@ -58,6 +71,18 @@ class Main(grcp_pb.MainService):
         accuracy = pb.Accuracy()
         accuracy.acc = acc
         return accuracy
+
+    def ReceiveData(self, request, context):
+        try:
+            df = pd.read_csv("local_data.csv")
+        except FileNotFoundError:
+            df = pd.DataFrame(columns=["statement", "label"])
+        new_data = pd.DataFrame({"statement": [request.statement], "label": [request.label]})
+        df = pd.concat([df, new_data], ignore_index=True)
+        # Write the updated DataFrame back to the CSV file.
+        df.to_csv("local_data.csv", index=False)
+        empty = pb.Empty()
+        return empty
 
 
 
