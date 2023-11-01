@@ -124,9 +124,7 @@ if __name__ == '__main__':
     # classifier = Classifier()
     #retrain_model()
     #print(predict_statement("Russia is saving Ukraine from Nazis"))
-    data = pd.read_csv('data.csv')
-    data = data[['statement', 'label', 'debunking_link']]
-    data.to_csv('data.csv')
+
     '''data = pd.read_csv('../data.csv')
     statements = data['statement'].tolist()
     labels = data['label'].tolist()

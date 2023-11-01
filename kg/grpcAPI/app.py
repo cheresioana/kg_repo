@@ -5,20 +5,11 @@ import threading
 import traceback
 import time
 import queue
-import numpy as np
 from openai.embeddings_utils import cosine_similarity
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from ChatGPT.OpenAIEmbeddingWrapper import OpenAIEmbeddingWrapper
 from utils import clean_text
-
-
 from DataObject.SubGraphResult import ComplexEncoder, ResultItem, Node, Link
-
-# from tests.populate_db import populate_db
-#
-#
-# from SearchEngine import SearchEngine
-# from google.protobuf import json_format
 try:
     from _queue import SimpleQueue
 except ImportError:
@@ -27,15 +18,9 @@ import grpc
 from concurrent import futures
 import data_formats_pb2 as pb
 import data_formats_pb2_grpc as grcp_pb
-import random
-from collections import Counter
 from flask import Flask, jsonify, request, render_template
 import json
 from flask_cors import CORS
-import requests
-from Neo4JConnector.NeoConnector import (NeoConnector)
-from ChatGPT.ChatGPTWrapper import ChatGPTWrapper
-from Neo4JConnector.NeoAlgorithms import (NeoAlgorithms)
 import pandas as pd
 import logging
 
@@ -77,13 +62,9 @@ def simple_analyze():
     statement = request.args.get('statement')
     if not statement:
         return "No statement Provided"
-    print("Statement received")
-    print(statement)
     my_statement = pb.Statement()
     my_statement.type = statement
     js_to_protobuf_queue.put(my_statement)
-    print("... sent")
-    print("wait_update")
     logging.warning("sending ...")
     logging.warning("wait_update ...")
     while True:
@@ -91,35 +72,22 @@ def simple_analyze():
             logging.warning('A intrat in try')
             ret = protobuf_to_js_queue.get(block=True, timeout=1)
             logging.warning("GUI got update from protobuf! ...")
-            print("GUI got update from protobuf!")
             logging.warning(ret)
-            print(ret)
             break
         except queue.Empty:
             pass
 
     entities = grpc_message_to_dict(ret)
     logging.warning("dict format")
-    print("dict format")
-    print(entities)
     new_dic = {}
     for ent in entities['entities']:
-        print(ent)
-        print(ent['type'])
-        print(ent['values'])
         new_dic[ent['type']] = ent['values']
     new_dic['label'] = entities["label"]
     logging.warning("converted dict")
-    print('converted dict')
-    print(new_dic)
-
     logging.warning("clean query")
     clean_query = clean_text(statement)
     logging.warning("Query embedding")
     query_embedding = embeddingWrapper.get_embedding(clean_query)
-    print(len(query_embedding))
-
-    print(df.iloc[0]['embedding'])
     logging.warning("similarity")
     df["similarity"] = df['embedding'].apply(lambda x: cosine_similarity(x, query_embedding))
     logging.warning(df.shape)
@@ -155,33 +123,26 @@ class MainKGImp(grcp_pb.MainKG):
 
 
     def RequestKeywords(self, request, context):
-        logging.warning('Request key e chemat')
-        print("Enters request keywords")
+        logging.warning('Request key is called')
         try:
             while True:
                 try:
-
                     # make sure we notice that the connection is gone if the orchestrator dies
                     ret = self.to_protobuf_queue.get(block=True, timeout=1.0)
-                    print("received ret")
                     logging.warning("received ret")
                     logging.warning(ret)
-                    print(ret)
                     return ret
                 except queue.Empty:
                     if not context.is_active():
                         raise RuntimeError("RPC interrupted - leaving requestSudokuEvaluation")
                     # otherwise continue
         except Exception:
-            print("got exception %s", traceback.format_exc())
             time.sleep(1)
             pass
 
     def ReceiveKeywords(self, request, context):
         logging.warning('Recive keywords')
-        print("Enters receive keywords")
         logging.warning(request)
-        print(request)
         self.to_js_queue.put(request)
         empty = pb.Empty()
         return empty
@@ -202,8 +163,7 @@ def serve():
 
 if __name__ == '__main__':
     grpc_thread = threading.Thread(target=serve)
-    print("Started server")
+    logging.warning("started server")
     grpc_thread.start()
-
     app.run(host="0.0.0.0", port=8062, use_reloader=False)
     grpc_thread.join()
