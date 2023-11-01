@@ -102,7 +102,16 @@ def simple_analyze():
     closest_statement = new_dic['statements'][0]
     community_id, community_text = find_community(closest_statement)
     new_dic['community_id'] = community_id
-    new_dic["community_text"] = community_text
+    keywords = []
+    statements = []
+    for node in community_text:
+        if len(node) < 40:
+            keywords.append(node)
+        else:
+            statements.append(node)
+    new_dic["keywords representative for this community"] = keywords
+    new_dic["statements from this community"] = statements
+
 
     json_str = json.dumps(new_dic, cls=ComplexEncoder, indent=4)
     return json_str
