@@ -31,18 +31,57 @@
     <div class="container">
         <h1>Analysis Results</h1>
         <p><span class="label">Label:</span> <span id="label"></span></p>
-        <p><span class="label">Organizations:</span> <span id="organizations"></span></p>
-        <p><span class="label">Locations:</span> <span id="locations"></span></p>
+        <div id="ner">
+
+        </div>
         <h2>Statements:</h2>
         <ul class="statements" id="statements">
         </ul>
-        {{jsonfile}}
-        <script>
-            var json = {{ jsonfile|tojson }}
-            var org = document.getElementById('locations');
 
-            org.textContent = json['GPE'].join(', ');
-            console.log(json)
+        <h2>Community</h2>
+        <p><span class="label">Community ID:</span> <span id="communityID"></span></p>
+        <p><span class="label">Community Keywords:</span> <span id="communityKeywords"></span></p>
+        <h3>Community statements</h3>
+        <ul class="statements" id="communityStatements">
+        </ul>
+        <script>
+            var json = {{ data|tojson }}
+            var label = document.getElementById('label');
+            var nerDiv = document.getElementById('ner');
+            var statement = document.getElementById('statements');
+            var communityID = document.getElementById('communityID');
+            var communityKeywords = document.getElementById('communityKeywords');
+            var communityStatements = document.getElementById('communityStatements');
+            var ner = json['ner']
+            label.textContent = json['label'].toString();
+
+            for (const key in ner) {
+                if (ner.hasOwnProperty(key)) {
+                    const pElement = document.createElement('p');
+                    const labelSpan = document.createElement('span');
+                    labelSpan.className = 'label';
+                    labelSpan.textContent = key + ': ';
+                    const labelValueSpan = document.createElement('span');
+                    labelValueSpan.id = 'label';
+                    labelValueSpan.textContent = `${ner[key].join(', ')}`;
+                    pElement.appendChild(labelSpan);
+                    pElement.appendChild(labelValueSpan);
+                    nerDiv.appendChild(pElement);
+                }
+            }
+
+            json['statements'].forEach(s => {
+              const li = document.createElement('li');
+              li.textContent = s;
+              statement.appendChild(li);
+            });
+            communityID.textContent = json['community_id'].toString();
+            communityKeywords.textContent = json['communityKeywords'].join('  ||  ');
+            json['communityStatements'].forEach(s => {
+                const li = document.createElement('li');
+                li.textContent = s;
+                communityStatements.appendChild(li);
+            });
         </script>
     </div>
 </body>

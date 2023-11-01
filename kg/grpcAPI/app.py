@@ -81,9 +81,9 @@ def simple_analyze():
 
     entities = grpc_message_to_dict(ret)
     logging.warning("dict format")
-    new_dic = {}
+    new_dic = {'ner': {}}
     for ent in entities['entities']:
-        new_dic[ent['type']] = ent['values']
+        new_dic['ner'][ent['type']] = ent['values']
     new_dic['label'] = entities["label"]
     logging.warning("converted dict")
     logging.warning("clean query")
@@ -109,11 +109,11 @@ def simple_analyze():
             keywords.append(node)
         else:
             statements.append(node)
-    new_dic["keywords representative for this community"] = keywords
-    new_dic["statements from this community"] = statements
+    new_dic["communityKeywords"] = keywords
+    new_dic["communityStatements"] = statements
 
     json_str = json.dumps(new_dic, cls=ComplexEncoder, indent=4)
-    return render_template('results.html', title="page", jsonfile=json_str)
+    return render_template('results.html', title="page", data=new_dic)
 
 
 @app.route('/test', methods=['GET'])
