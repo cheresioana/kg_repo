@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analysis Results</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f2f2f2;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+        }
+        .label {
+            font-weight: bold;
+            color: #FF5733;
+        }
+        .statements {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Analysis Results</h1>
+        <p><span class="label">Label:</span> <span id="label"></span></p>
+        <p><span class="label">Organizations:</span> <span id="organizations"></span></p>
+        <p><span class="label">Locations:</span> <span id="locations"></span></p>
+        <h2>Statements:</h2>
+        <ul class="statements" id="statements">
+        </ul>
+        {{jsonfile}}
+        <script>
+            var json = {{ jsonfile|tojson }}
+            var org = document.getElementById('locations');
+
+            org.textContent = json['GPE'].join(', ');
+            console.log(json)
+        </script>
+    </div>
+</body>
+</html>

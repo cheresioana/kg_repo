@@ -112,11 +112,8 @@ def simple_analyze():
     new_dic["keywords representative for this community"] = keywords
     new_dic["statements from this community"] = statements
 
-
     json_str = json.dumps(new_dic, cls=ComplexEncoder, indent=4)
-    return json_str
-
-
+    return render_template('results.html', title="page", jsonfile=json_str)
 
 
 @app.route('/test', methods=['GET'])
