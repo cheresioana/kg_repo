@@ -36,12 +36,9 @@ service DataService {
 service MainKG {
   rpc RequestKeywords(Empty) returns (Statement);
   rpc ReceiveKeywords(EntityResponse) returns (Empty);
-  rpc RequestTrain(Empty) returns (Command);
-  rpc ReceiveAcc(Accuracy) returns (Empty);
 }
 
 service MainService {
   rpc GetKeywords(Statement) returns (EntityResponse);
   rpc ReceiveData(DataObject) returns (Empty);
-  rpc RetrainModel(Empty) returns (Accuracy);
 }

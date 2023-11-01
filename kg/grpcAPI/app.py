@@ -7,6 +7,8 @@ import time
 import queue
 from openai.embeddings_utils import cosine_similarity
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
+from algo_community.main import find_community
 from ChatGPT.OpenAIEmbeddingWrapper import OpenAIEmbeddingWrapper
 from utils import clean_text
 from DataObject.SubGraphResult import ComplexEncoder, ResultItem, Node, Link
@@ -97,6 +99,10 @@ def simple_analyze():
     )
     logging.warning(results)
     new_dic['statements'] = results['statement'].tolist()
+    closest_statement = new_dic['statements'][0]
+    community_id, community_text = find_community(closest_statement)
+    new_dic['community_id'] = community_id
+    new_dic["community_text"] = community_text
 
     json_str = json.dumps(new_dic, cls=ComplexEncoder, indent=4)
     return json_str
