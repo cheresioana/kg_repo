@@ -121,6 +121,19 @@ def predict_statement(statement):
 
 
 if __name__ == '__main__':
+    classifier = Classifier(
+                 model_path='model', tokenizer_path='tokenizer.pkl', label_encoder_path='label_encoder.pkl',retrain=1)
+    data = pd.read_csv('data.csv')
+    data = data[['statement', 'label']]
+    data = data.dropna()
+    statements = data['statement'].tolist()
+    labels = data['label'].tolist()
+
+    statements_train, statements_test, labels_train, labels_test = train_test_split(statements, labels,
+                                                                                    test_size=int(0.25 * data.shape[0]),
+                                                                                    random_state=42)
+    classifier.train(statements_train, labels_train)
+    print(classifier.evaluate(statements_test, labels_test))
     # classifier = Classifier()
     #retrain_model()
     #print(predict_statement("Russia is saving Ukraine from Nazis"))

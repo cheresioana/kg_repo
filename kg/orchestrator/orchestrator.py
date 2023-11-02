@@ -33,9 +33,8 @@ def run_client2():
         logging.info("Send data ")
         response2 = stub2.ReceiveData(response)
         print(response2)
-        break
 
 
 if __name__ == '__main__':
-    run_client()
-    #run_client2()
+    #run_client()
+    run_client2()

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+</head>
+<body>
+    <div class="container">
+        <h1>Initial spread of labels over data</h1>
+        <img src="{{ url_for('static', filename='initial_data.jpg') }}" alt="My Image">
+        <h1>Selected data for training purpose</h1>
+        <img src="{{ url_for('static', filename='selected_training.jpg') }}" alt="My Image">
+        <h1>Training process</h1>
+        <img src="{{ url_for('static', filename='training_history.jpg') }}" alt="My Image">
+        <h1>Accuracy: {{ data }}</h1>
+    </div>
+</body>
+</html>

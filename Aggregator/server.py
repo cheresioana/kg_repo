@@ -5,16 +5,16 @@ import grpc
 from concurrent import futures
 import data_formats_pb2 as pb
 import data_formats_pb2_grpc as grcp_pb
-from classifier.classifier import predict_statement, retrain_model
+from classifier.classifier2 import predict_statement, retrain_model
 from knowledge_extraction.EntityExtractor import EntityExtractor
 import pandas as pd
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, render_template
 import json
 from flask_cors import CORS
 
 extractor = EntityExtractor()
 
-app = Flask(__name__)
+app = Flask(__name__,  static_folder='static', static_url_path='/static')
 
 CORS(app)
 
@@ -22,12 +22,13 @@ CORS(app)
 @app.route('/retrain', methods=['GET'])
 def retrain():
     acc = retrain_model()
-    return str(acc)
+    return render_template('results.html', title="page", data=acc)
 
 @app.route('/', methods=['GET'])
 def hello():
-    acc = retrain_model()
-    return str(acc)
+    acc = ("<h2>go on <span style='color:blue'> /data </span> to pull the new data from the DataBroker</h2> <br/> "
+           "<h2>go on <span style='color:blue'> /retrain </span> to retrain the classifier</h2>")
+    return acc
 
 @app.route('/data', methods=['GET'])
 def get_data():
@@ -89,7 +90,7 @@ class Main(grcp_pb.MainService):
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     grcp_pb.add_MainServiceServicer_to_server(Main(), server)
-    server.add_insecure_port('[::]:8063')  # Change the port if needed
+    server.add_insecure_port('[::]:8061')  # Change the port if needed
     server.start()
     print("Started server")
     server.wait_for_termination()
@@ -100,5 +101,5 @@ if __name__ == '__main__':
     print("Started server")
     grpc_thread.start()
 
-    app.run(host="0.0.0.0", port=8064, use_reloader=False)
+    app.run(host="0.0.0.0", port=8062, use_reloader=False)
     grpc_thread.join()

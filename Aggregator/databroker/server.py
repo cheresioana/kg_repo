@@ -12,8 +12,12 @@ class Databroker(grpc_pb.DataService):
 
     def __init__(self):
         self.current_row = 0
-        dataset = pd.read_csv("data.csv")
-        dataset = dataset.dropna()
+        dataset = pd.read_csv("data_clean.csv")
+        dataset = dataset.dropna(subset=['statement'])
+
+        # If you want to reset the index after dropping rows, you can do the following:
+        dataset.reset_index(drop=True, inplace=True)
+        #dataset = dataset.dropna()
         self.dataset = dataset
 
     def GetData(self, request, context):
