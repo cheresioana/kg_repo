@@ -6,6 +6,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 
 from bs4 import BeautifulSoup
+import csv
 
 from QueueConnectionModule import QueueConnectionModule
 from country_languages import *
@@ -107,6 +108,9 @@ def crawl_summary_page(url):
 
     news = driver.find_elements(By.CSS_SELECTOR, '.b-archive__database-item')
     data = []
+    fieldnames = ['statement', 'date', 'debunking_link', 'fake_news_content', 'debunking_argument', 'fake_news_source',
+                  'spread_location', 'tags']
+    csv_file = 'dataEuVsDisinfo.csv'
     index = 0
     for n in news:
         if not localState.already_parsed(n.get_attribute('href').strip()):
@@ -120,10 +124,17 @@ def crawl_summary_page(url):
             print(data_object.statement)
             print(data_object.date)
             print(data_object.debunking_link)
+
+            parse_debunk_page(data_object)
+            with open(csv_file, 'a', newline='', encoding='utf-8') as file:
+                writer = csv.DictWriter(file, fieldnames=fieldnames)
+                if index == 0:
+                    writer.writeheader()
+                writer.writerow({fieldname: getattr(data_object, fieldname, '') for fieldname in fieldnames})
+            index += 1
             if data_object.statement.strip() == "":
                 print("FARA STATEMENT : " + data_object.debunking_link)
                 continue
-            parse_debunk_page(data_object)
             # queue.send_message(json.dumps(data_object.json_encoder()))
             # localState.append(data_object)
             print(index)
