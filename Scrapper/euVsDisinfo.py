@@ -15,7 +15,7 @@ from DataObject import DataObject
 from LocalState import LocalState
 
 localState = LocalState()
-# queue = QueueConnectionModule()
+queue = QueueConnectionModule()
 
 def get_summary(driver):
     summaries = driver.find_elements(By.CSS_SELECTOR, '.b-report__summary .b-text p')
@@ -127,17 +127,17 @@ def crawl_summary_page(url):
             print(data_object.debunking_link)
 
             parse_debunk_page(data_object)
-            with open(csv_file, 'a', newline='', encoding='utf-8') as file:
-                writer = csv.DictWriter(file, fieldnames=fieldnames)
-                if index == 0:
-                    writer.writeheader()
-                writer.writerow({fieldname: getattr(data_object, fieldname, '') for fieldname in fieldnames})
+            # with open(csv_file, 'a', newline='', encoding='utf-8') as file:
+            #     writer = csv.DictWriter(file, fieldnames=fieldnames)
+            #     if index == 0:
+            #         writer.writeheader()
+            #     writer.writerow({fieldname: getattr(data_object, fieldname, '') for fieldname in fieldnames})
             index += 1
             if data_object.statement.strip() == "":
                 print("FARA STATEMENT : " + data_object.debunking_link)
                 continue
-            # queue.send_message(json.dumps(data_object.json_encoder()))
-            # localState.append(data_object)
+            queue.send_message(json.dumps(data_object.json_encoder()))
+            localState.append(data_object)
             print(index)
             index = index + 1
 

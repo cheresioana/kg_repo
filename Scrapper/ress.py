@@ -51,7 +51,7 @@ def translate_object(data_object):
     if data_object.statement != '':
         data_object.statement = translator.robust_translate(data_object.statement)
     if data_object.spread_location != '':
-        data_object.spread_location = translator.robust_translate(data_object.spread_location)
+        data_object.spread_location = [translator.robust_translate(location) for location in data_object.spread_location]
     if data_object.fake_news_content != '':
         data_object.fake_news_content = translator.robust_translate(data_object.fake_news_content)
     if data_object.summary_explanation != '':

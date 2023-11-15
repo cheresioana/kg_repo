@@ -8,7 +8,7 @@ import spacy
 import pytextrank
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
-
+import logging
 '''import nltk
 nltk.download('punkt')
 nltk.download('stopwords')'''
@@ -141,13 +141,13 @@ def get_simple_keywords(row):
 
 
 def populate():
-    df = pd.read_csv('data/data_with_embeddings.csv')
+    df = pd.read_csv('../data/data_with_embeddings.csv')
     connector = NeoConnector()
     i = 0
 
     for index, row in df.iterrows():
-        # print(f"Enriching {topic} documents")
-        if pd.isna(row['statement']) or pd.isna(row['summary_explanation']):
+        if pd.isna(row['statement']):
+            logging.error(f"Missing statement {row}")
             continue
         title_entities = eval(row['title_entities'])
         keywords = eval(row['keywords'])
@@ -162,10 +162,13 @@ def populate():
         connector.insert_statement_entities(record_id, keywords)
         connector.insert_statement_entities(record_id, tags)
 
-        if not pd.isna(row['spread_location']):
-            connector.insert_location(record_id, row['spread_location'])
-        if not pd.isna(row['fake_news_source']):
-            parsed_url = urlparse(row['fake_news_source'])
+        spread_locations = eval(row['spread_location'])
+        for location in spread_locations:
+            connector.insert_location(record_id, location)
+
+        fake_news_sources = eval(row['fake_news_source'])
+        for source in fake_news_sources:
+            parsed_url = urlparse(source)
             base_url = parsed_url.netloc
             connector.insert_channel(record_id, base_url)
 
