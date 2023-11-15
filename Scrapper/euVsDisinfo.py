@@ -3,6 +3,9 @@ import json
 from selenium import webdriver
 from selenium.webdriver import Chrome, ChromeOptions
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.wait import WebDriverWait
+
+from bs4 import BeautifulSoup
 
 from QueueConnectionModule import QueueConnectionModule
 from country_languages import *
@@ -11,7 +14,7 @@ from DataObject import DataObject
 from LocalState import LocalState
 
 localState = LocalState()
-queue = QueueConnectionModule()
+# queue = QueueConnectionModule()
 
 def get_summary(driver):
     summaries = driver.find_elements(By.CSS_SELECTOR, '.b-report__summary .b-text p')
@@ -84,8 +87,9 @@ def parse_debunk_page(data_object):
     data_object.tags = get_tags(driver)
 
 
-def get_statement(n):
-    title = n.find_element(By.CSS_SELECTOR, '.b-archive__database-item-title').text.strip()
+def get_statement(soup):
+    title = soup.select_one('.b-archive__database-item-title').get_text(strip=True)
+
     if title.startswith("DISINFO:"):
         cleaned_title = title.replace("DISINFO:", "").strip()
     else:
@@ -107,12 +111,21 @@ def crawl_summary_page(url):
     for n in news:
         if not localState.already_parsed(n.get_attribute('href').strip()):
             data_object = DataObject('EuVsDisInfo', 'https://euvsdisinfo.eu/disinformation-cases/')
-            data_object.statement = get_statement(n)
-            data_object.date = n.find_element(By.CSS_SELECTOR, '.b-archive__database-item-date').text.strip()
+            element_html = n.get_attribute('innerHTML')
+            soup = BeautifulSoup(element_html, 'html.parser')
+
+            data_object.statement = get_statement(soup)
+            data_object.date = soup.select_one('.b-archive__database-item-date').get_text(strip=True)
             data_object.debunking_link = n.get_attribute('href').strip()
+            print(data_object.statement)
+            print(data_object.date)
+            print(data_object.debunking_link)
+            if data_object.statement.strip() == "":
+                print("FARA STATEMENT : " + data_object.debunking_link)
+                continue
             parse_debunk_page(data_object)
-            queue.send_message(json.dumps(data_object.json_encoder()))
-            localState.append(data_object)
+            # queue.send_message(json.dumps(data_object.json_encoder()))
+            # localState.append(data_object)
             print(index)
             index = index + 1
 
