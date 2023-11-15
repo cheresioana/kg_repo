@@ -1,13 +1,17 @@
+import json
+
 from selenium import webdriver
 from selenium.webdriver import Chrome, ChromeOptions
 from selenium.webdriver.common.by import By
+
+from QueueConnectionModule import QueueConnectionModule
 from country_languages import *
 
-from kg_repo.Scrapper.DataObject import DataObject
-from kg_repo.Scrapper.LocalState import LocalState
+from DataObject import DataObject
+from LocalState import LocalState
 
 localState = LocalState()
-
+queue = QueueConnectionModule()
 
 def get_summary(driver):
     summaries = driver.find_elements(By.CSS_SELECTOR, '.b-report__summary .b-text p')
@@ -99,6 +103,7 @@ def crawl_summary_page(url):
 
     news = driver.find_elements(By.CSS_SELECTOR, '.b-archive__database-item')
     data = []
+    index = 0
     for n in news:
         if not localState.already_parsed(n.get_attribute('href').strip()):
             data_object = DataObject('EuVsDisInfo', 'https://euvsdisinfo.eu/disinformation-cases/')
@@ -106,7 +111,10 @@ def crawl_summary_page(url):
             data_object.date = n.find_element(By.CSS_SELECTOR, '.b-archive__database-item-date').text.strip()
             data_object.debunking_link = n.get_attribute('href').strip()
             parse_debunk_page(data_object)
+            queue.send_message(json.dumps(data_object.json_encoder()))
             localState.append(data_object)
+            print(index)
+            index = index + 1
 
     pagination_div = driver.find_element(By.CSS_SELECTOR, '.b-pagination')
     items = pagination_div.find_elements(By.CSS_SELECTOR, '.b-pagination__item')

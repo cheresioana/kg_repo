@@ -52,6 +52,13 @@ class TestBasicFunctions(unittest.TestCase):
         self.assertEqual(['Ucraina', 'Rusia', 'UE'], data.tags)
         self.assertEqual("Marin Gherman", data.journalist_name)
 
+    def test_parse_euvsDisinfo1(self):
+        data = DataObject()
+        page = 'https://euvsdisinfo.eu/report/events-in-israel-and-ukraine-are-no-accident-as-the-us-tried-to-create-areas-of-instability'
+        parse_news_page(data, page)
+        self.assertEqual(['Ucraina', 'Rusia', 'UE'], data.tags)
+        self.assertEqual("Marin Gherman", data.journalist_name)
+
 
 if __name__ == '__main__':
     unittest.main()
