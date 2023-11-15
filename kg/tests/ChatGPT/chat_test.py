@@ -1,26 +1,20 @@
 import os
 import sys
-
 import pandas as pd
 import random
 import json
-
+import openai
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-NEO4J_URI = "bolt://localhost:7687"
-
+NEO4J_URI = "bolt://neo4j:7687"
 NEO4J_AUTH = ('neo4j', 'ioana123')
-sys.path.append(os.path.dirname(os.path.abspath('/home/ioana/kg_repo/kg/Neo4JConnector')))
-sys.path.append(os.path.dirname(os.path.abspath('/home/ioana/kg_repo/kg/tests/utils.py')))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from Neo4JConnector.NeoAlgorithms import (NeoAlgorithms)
 from Neo4JConnector.NeoConnector import (NeoConnector)
 
-import openai
-import os
-
-openai.api_key = "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"
+openai.api_key = os.environ.get('OPENAI_API_KEY')
 
 
 def create_file(dataset, file_name):
@@ -74,7 +68,7 @@ def prepare_data():
     print(f"Lenght of random batch: {len(random_batch)}")
     print(f"Lenght of full batch elements: {len(all_statements)}")
 
-    df = pd.read_csv('../../data.csv', index_col=None)
+    df = pd.read_csv('../../data/data.csv', index_col=None)
     # test_batch
 
     test_batch = df[df['id'].isin(test_batch)]
@@ -83,15 +77,15 @@ def prepare_data():
 
     # create train file with top 2
     top_batch = df[df['id'].isin(top)]
-    create_file(top_batch, 'top_train.json')
+    create_file(top_batch, 'data/top_train.json')
 
     # create train file with random
     random_batch = df[df['id'].isin(random_batch)]
-    create_file(random_batch, 'random_train.json')
+    create_file(random_batch, 'data/random_train.json')
 
     # create train with all
     all_batch = df[df['id'].isin(all_statements)]
-    create_file(all_batch, 'all_train.json')
+    create_file(all_batch, 'data/all_train.json')
 
 
 def call_train_models(train_files):
@@ -100,7 +94,7 @@ def call_train_models(train_files):
             file=open(train_file, "rb"),
             purpose='fine-tune'
         )
-        with open("logs_models_names2.txt", 'a+') as file:
+        with open("data/logs_models_names2.txt", 'a+') as file:
             file.write(train_file + "\n" + str(response) + "\n")
             print(response)
             response = openai.FineTuningJob.create(training_file=response['id'], model="gpt-3.5-turbo")
@@ -108,34 +102,34 @@ def call_train_models(train_files):
             file.write("\n" + str(response) + "\n")
 
 
-def querry_chat(model, text):
-    querry = "Write a short debunk for: " + text
+def query_chat(model, text):
+    query = "Write a short debunk for: " + text
     response = openai.ChatCompletion.create(
         model=model,
         messages=[
             {"role": "system", "content": "You are a fact-checking journalist."},
             {"role": "user",
-             "content": querry},
+             "content": query},
         ]
     )
     return response['choices'][0]["message"]["content"]
 
 
 def generate(model_list):
-    df = pd.read_csv('test.csv', index_col=None)
+    df = pd.read_csv('data/test.csv', index_col=None)
     result_df = pd.DataFrame()
     for index, row in df.iterrows():
         statement = row['statement']
         print(f"{index} --  {statement}")
         for model in model_list:
-            generated_debunk = querry_chat(model["id"], statement)
+            generated_debunk = query_chat(model["id"], statement)
             row[model["name"]] = generated_debunk
         result_df = pd.concat([result_df, pd.DataFrame([row])], ignore_index=True)
     result_df.to_csv("results.csv")
 
 
 def evaluate(model_list):
-    df = pd.read_csv('results.csv', index_col=None)
+    df = pd.read_csv('data/results.csv', index_col=None)
     all_similarities = []
     for index, row in df.iterrows():
         explanation = row['summary_explanation']
@@ -157,10 +151,9 @@ def evaluate(model_list):
 
 if __name__ == "__main__":
     print(openai.FineTuningJob.list(limit=10))
-    #response = openai.FineTuningJob.create(training_file="file-c1X3xIE5W9rVMqi9yPjLhcCO", model="gpt-3.5-turbo")
-    #response = openai.FineTuningJob.create(training_file="file-DqNCHKnPTyJKReEZl5FLY0rU", model="gpt-3.5-turbo")
-    #print(response)
-
+    # response = openai.FineTuningJob.create(training_file="file-c1X3xIE5W9rVMqi9yPjLhcCO", model="gpt-3.5-turbo")
+    # response = openai.FineTuningJob.create(training_file="file-DqNCHKnPTyJKReEZl5FLY0rU", model="gpt-3.5-turbo")
+    # print(response)
 
     '''prepare_data()
     call_train_models(['top_train.json', 'random_train.json']) #'top_train.json',

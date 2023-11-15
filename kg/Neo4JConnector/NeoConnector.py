@@ -5,10 +5,15 @@ from urllib.parse import urlparse
 import requests
 from neo4j import GraphDatabase, basic_auth
 
+from DataObject.SubGraphResult import Node
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from constanst import NEO4J_URI, NEO4J_AUTH
 
 class NeoConnector:
     def __init__(self):
-        self.driver = GraphDatabase.driver('bolt://localhost:7687', auth=basic_auth('neo4j', 'ioana123'))
+        self.driver = GraphDatabase.driver(NEO4J_URI, auth=NEO4J_AUTH)
         self.dic_key = {
             'CARDINAL': 'MENTIONS_CARDINAL',
             'DATE': 'MENTIONS_DATE',
@@ -49,27 +54,46 @@ class NeoConnector:
         self.driver.close()
 
     def insert_statement(self, row):
-        INSERT_STATEMENT = """USE news
+        INSERT_STATEMENT = """USE neo4j
             UNWIND $inputs AS row
-            MERGE (n:Fake_Statement {id: row.id}) 
-            SET n.statement = row.statement    
+            MERGE (n:Fake_Statement {embedding: row.embedding, date: row.date, url:row.debunking_link}) 
+            SET n.statement = row.statement, n.id = ID(n), n.intra_id = ID(n)
+            RETURN n
         """
         with self.driver.session() as session:
-            session.run(INSERT_STATEMENT, inputs=row.to_dict())
+            records, summary, keys = self.driver.execute_query(INSERT_STATEMENT, inputs=row.to_dict())
+            if len(records) > 0:
+                record = records[0].data()['n']
+                return record['id']
 
     def insert_search_statement(self, statement):
-        INSERT_STATEMENT = """USE news
-            
+        INSERT_STATEMENT = """USE neo4j
             MERGE (n:Fake_Statement {statement: $input}) 
-            SET n.query = 1, n.id = ID(n)
-            RETURN ID(n) as id   
+            SET n.query = 1, n.id = ID(n), n.tag='query', n.intra_id = ID(n)
+            RETURN n   
         """
         with self.driver.session() as session:
             records, summary, keys = self.driver.execute_query(INSERT_STATEMENT, input=statement)
             if len(records) > 0:
-                return records[0]['id']
+                record = records[0].data()['n']
+                return Node(record['intra_id'], record['statement'], record['id'], record['tag'])
+                #return records[0]['id']
+
         return None
 
+    # def insert_simple_entity(self, doc_id, entities, key):
+    #     QUERY_ENTITIES = """USE neo4j
+    #         UNWIND $ent AS ents
+    #
+    #         MATCH (n:Fake_Statement {id: $doc_id})
+    #          FOREACH(entity IN $ent |
+    #             MERGE (e:Entity {name: entity, ent_type: $key})
+    #
+    #             MERGE (n)-[:HAS_KEYWORD]->(e)
+    #         )"""
+    #     # Missing  MERGE (n)-[:""" + self.dic_key[key] + """]->(e)
+    #     with self.driver.session() as session:
+    #         session.run(QUERY_ENTITIES, ent=entities[key], key=key, doc_id=doc_id)
     def insert_statement_entities(self, doc_id, entities):
         entity_keys = list(entities.keys())
         for key in entity_keys:
@@ -79,30 +103,49 @@ class NeoConnector:
                 self.insert_simple_entity(doc_id, entities, key)
 
     def insert_simple_entity(self, doc_id, entities, key):
-        QUERY_ENTITIES = """USE news
+        QUERY_ENTITIES = """USE neo4j
             UNWIND $ent AS ents
 
             MATCH (n:Fake_Statement {id: $doc_id})
              FOREACH(entity IN $ent |
-                MERGE (e:Entity {name: entity})
-               
-                MERGE (n)-[:HAS_KEYWORD]->(e)
+                MERGE (e:Entity {name: entity, type:$key})
+                SET e.intra_id = ID(e)
+                MERGE (n)-[:HAS_KEYWORD {weight:1}]->(e)
             )"""
         # Missing  MERGE (n)-[:""" + self.dic_key[key] + """]->(e)
         with self.driver.session() as session:
             session.run(QUERY_ENTITIES, ent=entities[key], key=key, doc_id=doc_id)
 
+
+    def insert_location(self, doc_id, location):
+        QUERY_ENTITIES = """USE neo4j
+            MATCH (n:Fake_Statement {id: $doc_id})
+            MERGE (e:Location {location: $location})
+            MERGE (n)-[:HAS_LOCATION]->(e)
+            """
+        with self.driver.session() as session:
+            session.run(QUERY_ENTITIES, location=location, doc_id=doc_id)
+
+    def insert_channel(self, doc_id, channel):
+        QUERY_ENTITIES = """USE neo4j
+            MATCH (n:Fake_Statement {id: $doc_id})
+            MERGE (e:Channel {name: $channel})
+            MERGE (n)-[:HAS_CHANNEL]->(e)
+            """
+        with self.driver.session() as session:
+            session.run(QUERY_ENTITIES, channel=channel, doc_id=doc_id)
+
     def __get_label_query(self, entity):
         return 'SELECT ?entity ?entityLabel ?id WHERE\n{?entity rdfs:label "' + str(
             entity) + '"@en.\n?entity wdt:P31 wd:Q5. \n SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }\n}'
 
-    def __insert_person(self, doc_id, official_name, uri='', status='unkown'):
-        QUERY_PERSON = """USE news
+    def __insert_person(self, doc_id, official_name, uri='', status='unknown'):
+        QUERY_PERSON = """USE neo4j
             
             MATCH (n:Fake_Statement {id: $doc_id})
                 MERGE (e:Person {name: $name, status: $status, uri: $uri})
-                
-                MERGE (n)-[:HAS_KEYWORD]->(e)
+                SET e.intra_id = ID(e)
+                MERGE (n)-[:HAS_KEYWORD {weight:1}]->(e)
                 """
 
         # Missing MERGE (n)-[:MENTIONS_PERSON]->(e)
@@ -158,7 +201,8 @@ class NeoConnector:
                 return 1
             except:
                 return -1
-        return -1
+        else:
+            self.__insert_person(doc_id, entity)
 
     def __insert_person_entities(self, doc_id, entities):
         for entity in entities:
@@ -182,7 +226,7 @@ class NeoConnector:
 
     def set_similarity(self):
         SET_SIMILARITY_QUERY = '''
-        USE news
+        USE neo4j
         MATCH (n:Fake_Statement)-[:HAS_KEYWORD]->(k)<-[:HAS_KEYWORD]-(n2:Fake_Statement)
         WHERE n <> n2
         WITH n, n2, collect(id(k)) AS kws_shared
@@ -201,7 +245,7 @@ class NeoConnector:
 
     @staticmethod
     def _create_and_return_greeting(tx):
-        result = tx.run("USE news "
+        result = tx.run("USE neo4j "
                         "MATCH(p:Fake_Statement)"
                         "RETURN p")
         return result.single()[0]
@@ -209,10 +253,9 @@ class NeoConnector:
     def select_fake_statements(self):
         with self.driver.session() as session:
             records, summary, keys = self.driver.execute_query(
-                "USE news MATCH(p:Fake_Statement) return p",
-                database_="news"
+                "USE neo4j MATCH(p:Fake_Statement) return p",
+                database_="neo4j"
             )
-
             # Loop through results and do something with them
             for person in records:
                 print(person)
@@ -220,8 +263,8 @@ class NeoConnector:
     def select_communities(self):
         with self.driver.session() as session:
             records = session.run(
-                "USE news MATCH(p:Fake_Statement) return p.community as community",
-                database_="news"
+                "USE neo4j MATCH(p:Fake_Statement) return p.community as community",
+                database_="neo4j"
             )
             results = [record for record in records.data()]
             communities = list(set([result["community"] for result in results]))
@@ -230,11 +273,11 @@ class NeoConnector:
 
             for community_id in communities:
                 records, summary, keys = self.driver.execute_query(
-                    "USE news "
+                    "USE neo4j "
                     "MATCH (p:Fake_Statement)"
                     " WHERE p.community=$community"
                     " return p.statement as statement, p.id as id",
-                    database_="news",
+                    database_="neo4j",
                     community=community_id
                 )
                 print(records)
@@ -242,15 +285,9 @@ class NeoConnector:
                 print(results)
                 exit(0)
 
-            # Loop through results and do something with them
-            # print(results)
-            # for person in results:
-            #    print(person)
-            #    print(person["id"])
-
     def get_louvain_simple(self):
         CREATE_PROJECTION_QUERY = '''
-        USE news
+        USE neo4j
         CALL gds.graph.project(
         'myGraph',
         'Fake_Statement',
@@ -266,7 +303,7 @@ class NeoConnector:
         ORDER BY name ASC 
         '''
         GET_DATA_QUERY = '''
-        USE news
+        USE neo4j
         match (p:Fake_Statement)-[r:HAS_KEYWORD]-(k) 
         WHERE p.community=114 
         WITH p, k, count(r) as rel_cnt, r
@@ -277,7 +314,7 @@ class NeoConnector:
 
     def run_louvain_algorithm(self):
         DROP_IF_EXISTS = '''
-        USE news
+        USE neo4j
         CALL gds.graph.drop('myGraph', false) YIELD graphName;
         '''
         with self.driver.session() as session:
@@ -286,7 +323,7 @@ class NeoConnector:
             print(summary)
 
         CREATE_PROJECTION_QUERY = '''
-        USE news
+        USE neo4j
        CALL gds.graph.project(
         'myGraph',
         'Fake_Statement',
@@ -302,7 +339,7 @@ class NeoConnector:
             print(summary)
 
         WRITE_COMMUNITY = '''
-        USE news
+        USE neo4j
         CALL gds.louvain.write('myGraph', { writeProperty: 'community' })
         YIELD communityCount, modularity, modularities
         '''
@@ -314,7 +351,7 @@ class NeoConnector:
     def _get_statement_nodes(self, limit=200):
         with self.driver.session() as session:
             records, summary, keys = self.driver.execute_query(
-                "USE news "
+                "USE neo4j "
                 "MATCH(p:Fake_Statement)-[:HAS_KEYWORD]-(n) "
                 "WITH apoc.node.degree(p) as degree, p "
                 "return DISTINCT p, p.id as intra_id, p.statement as statement, "
@@ -322,7 +359,7 @@ class NeoConnector:
                 " p.community as community, degree"
                 "   ORDER BY degree DESC"
                 " LIMIT $limit",
-                database_="news", limit=limit
+                database_="neo4j", limit=limit
             )
             statements = [p.data() for p in records]
             return statements
@@ -337,7 +374,7 @@ class NeoConnector:
             return DISTINCT(n) , n.name as name, degree, labels(n)[0] as tag, ID(n) as id
             ORDER BY degree DESC
             LIMIT $limit
-            ''', database_="news", limit=limit)
+            ''', database_="neo4j", limit=limit)
             key_elements = [p.data() for p in records]
             return key_elements
 
@@ -348,20 +385,20 @@ class NeoConnector:
             MATCH (n)-[:HAS_KEYWORD]-(p)
             WHERE ID(n) in $id_list1 and ID(p) in $id_list2
             RETURN ID(n) AS source, ID(p) AS target
-            ''', database_="news", id_list1=id_list1, id_list2=id_list2)
+            ''', database_="neo4j", id_list1=id_list1, id_list2=id_list2)
             links = [p.data() for p in records]
             return links
 
     def _get_statement_nodes_from_list(self, list):
         with self.driver.session() as session:
             records, summary, keys = self.driver.execute_query(
-                "USE news "
+                "USE neo4j "
                 "MATCH(p:Fake_Statement)"
                 "WHERE ID(p) in $id_list "
                 "return p.id as intra_id, p.statement as statement, "
                 "'fake_news' as tag, ID(p) as id, "
                 "p.community as community",
-                database_="news", id_list=list
+                database_="neo4j", id_list=list
             )
             statements = [p.data() for p in records]
             return statements
@@ -391,40 +428,40 @@ class NeoConnector:
     def get_community_subgraph(self, id):
         with self.driver.session() as session:
             records, summary, keys = self.driver.execute_query(
-                "USE news "
+                "USE neo4j "
                 "MATCH (n) WHERE n.id=$id return n",
-                database_="news", id=int(id),
+                database_="neo4j", id=int(id),
             )
             origins = [p.data()['n'] for p in records]
             records, summary, keys = self.driver.execute_query(
-                "USE news "
+                "USE neo4j "
                 "MATCH (n)-[:SIMILAR_TO]-(p) WHERE p.community=n.community AND n.id=$id return p",
-                database_="news", id=int(id),
+                database_="neo4j", id=int(id),
             )
             statements = [p.data()['p'] for p in records]
 
             records, summary, keys = self.driver.execute_query(
-                "USE news "
+                "USE neo4j "
                 "MATCH (n)-[:SIMILAR_TO]-(p), (n)-[:HAS_KEYWORD]-(d)-[:HAS_KEYWORD]-(p) "
                 "WHERE p.community=n.community AND "
                 "n.id=$id return DISTINCT(ID(d)) as id, d.name as statement, 'key_element' as tag",
-                database_="news", id=int(id),
+                database_="neo4j", id=int(id),
             )
             key_elements = [p.data() for p in records]
 
             records, summary, keys = self.driver.execute_query(
-                "USE news "
+                "USE neo4j "
                 "MATCH (n)-[r:SIMILAR_TO]-(p), (n)-[:HAS_KEYWORD]-(d)-[:HAS_KEYWORD]-(p) WHERE p.community=n.community AND n.id=$id return n.id as "
                 "source, ID(d) as target, 'fake_news' as tag",
-                database_="news", id=int(id),
+                database_="neo4j", id=int(id),
             )
             links = [p.data() for p in records]
 
             records, summary, keys = self.driver.execute_query(
-                "USE news "
+                "USE neo4j "
                 "MATCH (n)-[r:SIMILAR_TO]-(p), (n)-[:HAS_KEYWORD]-(d)-[:HAS_KEYWORD]-(p) WHERE p.community=n.community AND n.id=$id return "
                 "ID(d) as source, p.id as target",
-                database_="news", id=int(id),
+                database_="neo4j", id=int(id),
             )
             links2 = [p.data() for p in records]
 
@@ -453,9 +490,9 @@ class NeoConnector:
         with self.driver.session() as session:
             #here I take the statement
             records, summary, keys = self.driver.execute_query(
-                "USE news "
+                "USE neo4j "
                 "MATCH (n) WHERE n.id=$id return n",
-                database_="news", id=int(id),
+                database_="neo4j", id=int(id),
             )
             origins = []
             for p in records:
@@ -474,7 +511,7 @@ class NeoConnector:
                    '''
             records, summary, keys = self.driver.execute_query(
                     querry,
-                    database_="news", id=id, comm=community_id
+                    database_="neo4j", id=id, comm=community_id
             )
             statements = []
             for p in records:
@@ -487,33 +524,33 @@ class NeoConnector:
 
             ids = [p["id"] for p in statements]
             records, summary, keys = self.driver.execute_query(
-                "USE news "
+                "USE neo4j "
                 "MATCH (n)-[:HAS_KEYWORD]-(d)-[:HAS_KEYWORD]-(p) "
                 "WHERE p.id in $ids AND n.id=$id "
                 " return DISTINCT(ID(d)) as id, d.name as statement, 'key_element' as tag",
-                database_="news", id=int(id),ids=ids
+                database_="neo4j", id=int(id),ids=ids
             )
             key_elements = [p.data() for p in records]
             ids_key = [p["id"] for p in key_elements]
 
 
             records, summary, keys = self.driver.execute_query(
-                "USE news "
+                "USE neo4j "
                 "MATCH (n)-[:HAS_KEYWORD]-(d)"
                 "WHERE n.id=$id  and ID(d) in $ids return n.id as "
                 "source, ID(d) as target, 'fake_news' as tag",
-                database_="news", id=int(id), ids=ids_key
+                database_="neo4j", id=int(id), ids=ids_key
             )
             links = [p.data() for p in records]
             for p in links:
                 p["value"] = 4
 
             records, summary, keys = self.driver.execute_query(
-                "USE news "
+                "USE neo4j "
                 "MATCH (n)-[:HAS_KEYWORD]-(d)"
                 "WHERE ID(d) in $ids_key  and n.id in $ids return n.id as "
                 "target, ID(d) as source, 'fake_news' as tag",
-                database_="news", id=int(id), ids_key=ids_key, ids=ids
+                database_="neo4j", id=int(id), ids_key=ids_key, ids=ids
             )
             links2 = [p.data() for p in records]
             for p in links2:
@@ -543,24 +580,24 @@ class NeoConnector:
     def get_community_not_detected_subgraph(self, id):
         with self.driver.session() as session:
             records, summary, keys = self.driver.execute_query(
-                "USE news "
+                "USE neo4j "
                 "MATCH (n) WHERE n.id=$id return n",
-                database_="news", id=int(id),
+                database_="neo4j", id=int(id),
             )
             origins = [p.data()['n'] for p in records]
             records, summary, keys = self.driver.execute_query(
-                "USE news "
+                "USE neo4j "
                 "MATCH (n)-[:HAS_KEYWORD]-(p)-[:HAS_KEYWORD]-(d) WHERE n.id=$id return d LIMIT 5",
-                database_="news", id=int(id),
+                database_="neo4j", id=int(id),
             )
             statements = [p.data()['d'] for p in records]
             ids = [p["id"] for p in statements]
 
             records, summary, keys = self.driver.execute_query(
-                "USE news "
+                "USE neo4j "
                 "MATCH (n)-[:HAS_KEYWORD]-(p)-[:HAS_KEYWORD]-(d) WHERE n.id=$id and d.id in $ids "
                 "return DISTINCT(ID(p)) as id, p.name as statement, 'key_element' as tag",
-                database_="news", id=int(id), ids=ids
+                database_="neo4j", id=int(id), ids=ids
             )
             keywords = [p.data() for p in records]
             print("keywords")
@@ -568,22 +605,22 @@ class NeoConnector:
 
 
             records, summary, keys = self.driver.execute_query(
-                "USE news "
+                "USE neo4j "
                 "MATCH (n)-[:HAS_KEYWORD]-(p)-[:HAS_KEYWORD]-(d) "
                 "WHERE n.id=$id AND d.id in $ids"
                 " return n.id as "
                 "source, ID(p) as target, 'fake_news' as tag",
-                database_="news", id=int(id), ids=ids
+                database_="neo4j", id=int(id), ids=ids
             )
             links = [p.data() for p in records]
 
             records, summary, keys = self.driver.execute_query(
-                "USE news "
+                "USE neo4j "
                 "MATCH (n)-[:HAS_KEYWORD]-(p)-[:HAS_KEYWORD]-(d) "
                 "WHERE n.id=$id AND d.id in $ids"
                 " return d.id as "
                 "source, ID(p) as target, 'fake_news' as tag",
-                database_="news", id=int(id), ids=ids
+                database_="neo4j", id=int(id), ids=ids
             )
             links2 = [p.data() for p in records]
 
@@ -611,20 +648,20 @@ class NeoConnector:
     def get_similar(self, id):
         with self.driver.session() as session:
             records, summary, keys = self.driver.execute_query(
-                "USE news "
+                "USE neo4j "
                 "MATCH (p:Fake_Statement)-[r:SIMILAR_TO]-(k)"
                 "WHERE ID(p)=$id and p.community=k.community "
                 "return k.id as intra_id, k.statement as statement, "
                 "'fake_news' as tag, ID(k) as id",
-                database_="news", id=int(id),
+                database_="neo4j", id=int(id),
             )
             statements = [p.data() for p in records]
             records, summary, keys = self.driver.execute_query(
-                "USE news "
+                "USE neo4j "
                 "MATCH (p:Fake_Statement)-[r:SIMILAR_TO]-(k)"
                 "WHERE ID(p)=$id and p.community=k.community "
                 "RETURN ID(p) AS source, ID(k) AS target",
-                database_="news", id=int(id),
+                database_="neo4j", id=int(id),
             )
             links = [p.data() for p in records]
             my_dict = {
@@ -649,7 +686,7 @@ class NeoConnector:
         with self.driver.session() as session:
             records, summary, keys = self.driver.execute_query(
                 querry,
-                database_="news",
+                database_="neo4j",
             )
             statements = [p.data() for p in records]
         return statements
@@ -672,29 +709,104 @@ class NeoConnector:
         with self.driver.session() as session:
             records, summary, keys = self.driver.execute_query(
                 querry,
-                database_="news",
+                database_="neo4j",
             )
             statements = [p.data() for p in records]
         return statements
 
+    def get_statements_vectors(self):
+        query = '''
+            USE neo4j
+            MATCH (p:Fake_Statement)
+            WHERE p.embedding IS NOT NULL 
+            RETURN p.id as id, ID(p) as intra_id, p.embedding as embedding, p.statement as statement, 
+            p.date as date, p.url as url;
+        '''
+        with self.driver.session() as session:
+            records, summary, keys = self.driver.execute_query(
+                query,
+                database_="neo4j",
+            )
+            statements = [p.data() for p in records]
+        return statements
+
+    def get_statement_location(self, intra_id):
+        query = '''
+            USE neo4j
+            MATCH (p:Fake_Statement)-[:HAS_LOCATION]-(g:Location)
+            WHERE p.intra_id=$intra_id 
+            RETURN g;
+        '''
+        with self.driver.session() as session:
+            records, summary, keys = self.driver.execute_query(
+                query,
+                database_="neo4j",
+                intra_id=intra_id
+            )
+            statements = [g.data()["g"]["location"] for g in records]
+        if len(statements) > 0:
+            return statements[0]
+
+        return ""
+
+    def get_statement_channel(self, intra_id):
+        query = '''
+            USE neo4j
+            MATCH (p:Fake_Statement)-[:HAS_CHANNEL]-(g:Channel)
+            WHERE p.intra_id=$intra_id 
+            RETURN g;
+        '''
+        with self.driver.session() as session:
+            records, summary, keys = self.driver.execute_query(
+                query,
+                database_="neo4j",
+                intra_id=intra_id
+            )
+            statements = [g.data()["g"]["name"] for g in records]
+            if len(statements)> 0:
+                return statements[0]
+
+        return ""
+
+    def simple_delete(self, id):
+        #print('simple_delete')
+        query = '''
+                MATCH (p:Fake_Statement)
+                WHERE ID(p) = $id and p.query=1
+                detach delete p
+                '''
+        with self.driver.session() as session:
+            records, summary, keys = self.driver.execute_query(
+                query,
+                database_="neo4j", id=id
+            )
+            #print(records)
     def drop_fake_statements_associates(self, id):
         querry = '''
         MATCH (p:Fake_Statement)
-        WHERE p.id = $id
+        WHERE ID(p) = $id and p.query=1
         WITH p
         OPTIONAL MATCH (p)-[r]-(allRelatedNodes)
         WITH p, allRelatedNodes
         Optional MATCH (allRelatedNodes)-[:HAS_KEYWORD]-(m)
-        WITH COUNT(m) as nr_rel,  p, allRelatedNodes
+        WITH COUNT(m) as nr_rel,  p, allRelatedNodes, ID(p) as pid, ID(allRelatedNodes) as allrel
         WHERE nr_rel < 2
         detach delete p, allRelatedNodes
+        return pid, allrel
         '''
         with self.driver.session() as session:
             records, summary, keys = self.driver.execute_query(
                 querry,
-                database_="news", id=id
+                database_="neo4j", id=id
             )
-            #print(summary)
+            print(records)
+            print(summary)
+            print(keys)
+            statements = [p.data() for p in records]
+            if len(statements) == 0:
+                self.simple_delete(id)
+
+
     def del_similar_rel(self):
         querry = '''
         MATCH (n)-[r:SIMILAR]->()
@@ -703,7 +815,7 @@ class NeoConnector:
         with self.driver.session() as session:
             records, summary, keys = self.driver.execute_query(
                 querry,
-                database_="news"
+                database_="neo4j"
             )
             print(summary)
 
@@ -715,7 +827,7 @@ class NeoConnector:
         with self.driver.session() as session:
             records, summary, keys = self.driver.execute_query(
                 querry,
-                database_="news"
+                database_="neo4j"
             )
             print(summary)
 

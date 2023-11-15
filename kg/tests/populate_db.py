@@ -12,7 +12,8 @@ from nltk.tokenize import word_tokenize
 '''import nltk
 nltk.download('punkt')
 nltk.download('stopwords')'''
-sys.path.append(os.path.dirname(os.path.abspath('/home/ioana/kg_repo/kg/Neo4JConnector')))
+from urllib.parse import urlparse
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from Neo4JConnector.NeoConnector import NeoConnector
 
 
@@ -139,8 +140,8 @@ def get_simple_keywords(row):
     return entities
 
 
-if __name__ == '__main__':
-    df = pd.read_csv('../data.csv')
+def populate():
+    df = pd.read_csv('data/data_with_embeddings.csv')
     connector = NeoConnector()
     i = 0
 
@@ -149,22 +150,34 @@ if __name__ == '__main__':
         if pd.isna(row['statement']) or pd.isna(row['summary_explanation']):
             continue
         title_entities = eval(row['title_entities'])
-        #keywords = get_keywords(row, title_entities)
         keywords = eval(row['keywords'])
-        # print(keywords)
+        tags = eval(row['tags'])
+        print(row)
+        row['embedding'] = eval(row['embedding'])
+        if pd.isna(row['date']):
+            row["date"] = ""
 
-        # keywords = [{'name': clean_keyword(x.text), 'rank': x.rank}]
-        # print(keywords)
+        record_id = connector.insert_statement(row)
+        connector.insert_statement_entities(record_id, title_entities)
+        connector.insert_statement_entities(record_id, keywords)
+        connector.insert_statement_entities(record_id, tags)
 
-        # news_entities = eval(row['news_entities'])
-        connector.insert_statement(row)
-        connector.insert_statement_entities(row['id'], get_simple_keywords(row))
-        connector.insert_statement_entities(row['id'], title_entities)
+        if not pd.isna(row['spread_location']):
+            connector.insert_location(record_id, row['spread_location'])
+        if not pd.isna(row['fake_news_source']):
+            parsed_url = urlparse(row['fake_news_source'])
+            base_url = parsed_url.netloc
+            connector.insert_channel(record_id, base_url)
+
         #connector.insert_statement_entities(row['id'], keywords)
         print(i)
         i = i + 1
-        #exit(0)
+        #if i > 30:
+        #    return 0
 
-        # exit(0)
+        #exit(0)
         # connector.insert_statement_entities(row, news_entities)
     # connector.set_similarity()
+
+if __name__ == '__main__':
+    populate()

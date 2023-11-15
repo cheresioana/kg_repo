@@ -25,7 +25,7 @@ class QueueConnectionModule:
         try:
             parsed_object = self.parser.parse(body)
             self.local_state.save_parsed_entry(parsed_object)
-            #self.convertor.convert_csv('data.csv')
+            #self.convertor.convert_csv('data2.csv')
         except Exception as e:
             payload = json.loads(body)
             print(f"Error occurred for: {payload['statement']}")

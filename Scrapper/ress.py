@@ -38,6 +38,14 @@ def translate_object(data_object):
     translator = LocalTranslator()
 
     data_object.narrative = [translator.robust_translate(unidecode(x)) for x in data_object.narrative]
+    translated_tags = []
+    for x in data_object.tags:
+        translated_tag = translator.robust_translate(unidecode(x))
+        if translated_tag == "eu":
+            translated_tag = "EU"
+        translated_tag.replace(" eu ", ' EU ')
+        translated_tags.append(translated_tag)
+    data_object.tags = translated_tags
     if data_object.speaker_job_title != '':
         data_object.speaker_job_title = translator.robust_translate(data_object.speaker_job_title)
     if data_object.statement != '':

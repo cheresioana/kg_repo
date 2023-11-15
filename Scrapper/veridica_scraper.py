@@ -112,6 +112,7 @@ def parse_table(table):
             index = index + 1
         print(index)
 
+
         # if index > 0:
         #     exit(0)
 
