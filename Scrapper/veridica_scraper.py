@@ -101,8 +101,8 @@ def parse_table(table):
             # here I check if the 2nd column has a link for the source of the fake statement
             fake_news_source = cols[2].find('a')
             if fake_news_source is not None:
-                data_object.fake_news_source = fake_news_source['href']
-            data_object.spread_location = cols[3].text.strip()
+                data_object.fake_news_source = [fake_news_source['href']]
+            data_object.spread_location = [cols[3].text.strip()]
             data_object.debunking_link = cols[1].find('a')['href']
             parse_news_page(data_object, cols[1].find('a')['href'])
             localState.append(data_object)

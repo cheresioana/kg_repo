@@ -32,8 +32,8 @@ class DataObject:
 
         self.date = ''
         self.journalist_name = ''
-        self.spread_location = ''
-        self.fake_news_source = ''
+        self.spread_location = []
+        self.fake_news_source = []
         self.debunk_sources = []
         self.topic = ''
 
