@@ -86,6 +86,7 @@ def parse_debunk_page(data_object):
     data_object.fake_news_source = get_fake_news_outlets(driver)
     data_object.spread_location = get_article_language(driver, data_object.debunking_link)
     data_object.tags = get_tags(driver)
+    driver.close()
 
 
 def get_statement(soup):
