@@ -29,4 +29,4 @@ services:
       - NEO4J_apoc_import_file_enabled=true
       - NEO4JLABS_PLUGINS=["apoc", "graph-algorithms"]
     volumes:
-      - ./neo4j.dump:/import/new4j.dump
+      - ./neo4j.dump:/var/lib/neo4j/import
