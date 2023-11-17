@@ -31,14 +31,14 @@ class EntityExtractor():
         text_ents = [e.text for e in entities.ents]
         return text_ents
 
-    def get_keywords(self, row, title_entities):
+    def get_keywords_from_text(self, text, title_entities):
         ents = title_entities.values()
         ents = [item for sublist in ents for item in sublist]
         entities = {}
         # print(ents)
         nlp = spacy.load("en_core_web_sm")
         nlp.add_pipe("textrank")
-        processed = nlp(row['statement'] + row['fake_news_content'])
+        processed = nlp(text)
         keywords = [p.text for p in processed._.phrases]
 
         # print(keywords)
@@ -59,7 +59,7 @@ class EntityExtractor():
 
             # Convert list of words back to string
             filtered_text = ' '.join(filtered_text)
-            if len(filtered_text) < 4:
+            if len(filtered_text) < 3:
                 continue
 
             processed = nlp2(filtered_text)
@@ -77,6 +77,12 @@ class EntityExtractor():
             # result2.append(filtered_text)
 
         return entities
+
+    def get_keywords(self, row, title_entities):
+
+        text = row['statement'] + row['fake_news_content']
+        return self.get_keywords_from_text(text, title_entities)
+
 
     def get_tags_entities(self, data_object):
         result = {'keywords': []}

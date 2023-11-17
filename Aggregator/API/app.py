@@ -32,7 +32,13 @@ def get_keywords():
     print(data)
     print(data['statement'])
     entities = extractor.extract_entities(data['statement'])
+    keyword = extractor.get_keywords_from_text(data['statement'], entities)
     print(entities)
+    print(keyword)
+
+    if keyword.get('simple_keyword') is not None:
+        entities['simple_keyword'] = keyword['simple_keyword']
+
     return jsonify(entities)
 
 

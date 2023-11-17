@@ -8,8 +8,10 @@ from neo4j import GraphDatabase, basic_auth
 from DataObject.SubGraphResult import Node
 import sys
 import os
+
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from constanst import NEO4J_URI, NEO4J_AUTH
+
 
 class NeoConnector:
     def __init__(self):
@@ -77,30 +79,17 @@ class NeoConnector:
             if len(records) > 0:
                 record = records[0].data()['n']
                 return Node(record['intra_id'], record['statement'], record['id'], record['tag'])
-                #return records[0]['id']
+                # return records[0]['id']
 
         return None
 
-    # def insert_simple_entity(self, doc_id, entities, key):
-    #     QUERY_ENTITIES = """USE neo4j
-    #         UNWIND $ent AS ents
-    #
-    #         MATCH (n:Fake_Statement {id: $doc_id})
-    #          FOREACH(entity IN $ent |
-    #             MERGE (e:Entity {name: entity, ent_type: $key})
-    #
-    #             MERGE (n)-[:HAS_KEYWORD]->(e)
-    #         )"""
-    #     # Missing  MERGE (n)-[:""" + self.dic_key[key] + """]->(e)
-    #     with self.driver.session() as session:
-    #         session.run(QUERY_ENTITIES, ent=entities[key], key=key, doc_id=doc_id)
     def insert_statement_entities(self, doc_id, entities):
         entity_keys = list(entities.keys())
         for key in entity_keys:
-            if key == 'PERSON':
-                self.__insert_person_entities(doc_id, entities[key])
-            else:
-                self.insert_simple_entity(doc_id, entities, key)
+            #     if key == 'PERSON':
+            #         self.__insert_person_entities(doc_id, entities[key])
+            #     else:
+            self.insert_simple_entity(doc_id, entities, key)
 
     def insert_simple_entity(self, doc_id, entities, key):
         QUERY_ENTITIES = """USE neo4j
@@ -115,7 +104,6 @@ class NeoConnector:
         # Missing  MERGE (n)-[:""" + self.dic_key[key] + """]->(e)
         with self.driver.session() as session:
             session.run(QUERY_ENTITIES, ent=entities[key], key=key, doc_id=doc_id)
-
 
     def insert_location(self, doc_id, location):
         QUERY_ENTITIES = """USE neo4j
@@ -488,7 +476,7 @@ class NeoConnector:
 
     def get_community_detected_subgraph(self, id, community_id):
         with self.driver.session() as session:
-            #here I take the statement
+            # here I take the statement
             records, summary, keys = self.driver.execute_query(
                 "USE neo4j "
                 "MATCH (n) WHERE n.id=$id return n",
@@ -500,9 +488,9 @@ class NeoConnector:
                 g['tag'] = 'fake_news'
                 g['intra_id'] = g['id']
                 origins.append(g)
-            #origins = [p.data()['n'] for p in records]
+            # origins = [p.data()['n'] for p in records]
 
-            #here I find the most similar statements
+            # here I find the most similar statements
             querry = '''
                    MATCH (p1:Fake_Statement)-[r:SIMILAR]->(p2:Fake_Statement)
                    WHERE p1.id=$id and p2.community=$comm
@@ -510,8 +498,8 @@ class NeoConnector:
                    ORDER BY similarity DESCENDING LIMIT 3
                    '''
             records, summary, keys = self.driver.execute_query(
-                    querry,
-                    database_="neo4j", id=id, comm=community_id
+                querry,
+                database_="neo4j", id=id, comm=community_id
             )
             statements = []
             for p in records:
@@ -519,8 +507,7 @@ class NeoConnector:
                 g['tag'] = 'fake_news'
                 g['intra_id'] = g['id']
                 statements.append(g)
-            #statements = [p.data()["p2"] for p in records]
-
+            # statements = [p.data()["p2"] for p in records]
 
             ids = [p["id"] for p in statements]
             records, summary, keys = self.driver.execute_query(
@@ -528,11 +515,10 @@ class NeoConnector:
                 "MATCH (n)-[:HAS_KEYWORD]-(d)-[:HAS_KEYWORD]-(p) "
                 "WHERE p.id in $ids AND n.id=$id "
                 " return DISTINCT(ID(d)) as id, d.name as statement, 'key_element' as tag",
-                database_="neo4j", id=int(id),ids=ids
+                database_="neo4j", id=int(id), ids=ids
             )
             key_elements = [p.data() for p in records]
             ids_key = [p["id"] for p in key_elements]
-
 
             records, summary, keys = self.driver.execute_query(
                 "USE neo4j "
@@ -559,7 +545,7 @@ class NeoConnector:
             statements.extend(origins)
             statements.extend(key_elements)
             links.extend(links2)
-            #links = []
+            # links = []
             print('ORIGIN')
             print(origins)
 
@@ -602,7 +588,6 @@ class NeoConnector:
             keywords = [p.data() for p in records]
             print("keywords")
             print(keywords)
-
 
             records, summary, keys = self.driver.execute_query(
                 "USE neo4j "
@@ -745,7 +730,7 @@ class NeoConnector:
             )
             statements = [g.data()["g"]["location"] for g in records]
         if len(statements) > 0:
-            return statements[0]
+            return statements
 
         return ""
 
@@ -763,13 +748,13 @@ class NeoConnector:
                 intra_id=intra_id
             )
             statements = [g.data()["g"]["name"] for g in records]
-            if len(statements)> 0:
-                return statements[0]
+            if len(statements) > 0:
+                return statements
 
         return ""
 
     def simple_delete(self, id):
-        #print('simple_delete')
+        # print('simple_delete')
         query = '''
                 MATCH (p:Fake_Statement)
                 WHERE ID(p) = $id and p.query=1
@@ -780,7 +765,8 @@ class NeoConnector:
                 query,
                 database_="neo4j", id=id
             )
-            #print(records)
+            # print(records)
+
     def drop_fake_statements_associates(self, id):
         querry = '''
         MATCH (p:Fake_Statement)
@@ -805,7 +791,6 @@ class NeoConnector:
             statements = [p.data() for p in records]
             if len(statements) == 0:
                 self.simple_delete(id)
-
 
     def del_similar_rel(self):
         querry = '''

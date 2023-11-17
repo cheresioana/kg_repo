@@ -22,6 +22,7 @@ from Neo4JConnector.NeoConnector import (NeoConnector)
 from ChatGPT.ChatGPTWrapper import ChatGPTWrapper
 from Neo4JConnector.NeoAlgorithms import (NeoAlgorithms)
 import pandas as pd
+import time
 
 app = Flask(__name__)
 
@@ -114,7 +115,10 @@ def analyze():
 def analyze2():
     data = request.get_json()
     search_engine = SearchEngine()
+    start_time = time.time()
     keywords, show_links, show_nodes, path_result, origin_node = search_engine.find_results(data['statement'])
+    duration = time.time() - start_time
+    print(f"The search took {duration} seconds to run.")
     json_response = {
         'origin': [origin_node],
         'keywords': keywords,

@@ -22,9 +22,10 @@ class SearchEngine():
         if response.status_code == 200:
             entities = response.json()
             query_node = self.neo_connector.insert_search_statement(query)
+            print(entities)
             self.neo_connector.insert_statement_entities(query_node.intra_id, entities)
             return query_node, entities
-        return None
+        return None, None
 
     def find_path_between_nodes(self, start, end):
         paths = self.neo_algo.find_dijkstra_path(start, end)
@@ -62,8 +63,12 @@ class SearchEngine():
         results = []
         for index, row in res_df.iterrows():
             paths = self.find_path_between_nodes(query_id, int(row["intra_id"]))
-            location = self.neo_connector.get_statement_location(row["intra_id"])
-            channel = self.neo_connector.get_statement_channel(row["intra_id"])
+            locations = self.neo_connector.get_statement_location(row["intra_id"])
+            channels = self.neo_connector.get_statement_channel(row["intra_id"])
+
+            print(f'Channels {channels}, Locations {locations}')
+            if len(paths) < 1:
+                continue
             min_weight = paths[0]["weight"]
             for path in paths:
                 nodes, links = self.parse_path(min_weight, path, query_id)
@@ -72,7 +77,7 @@ class SearchEngine():
                                               row["intra_id"],
                                               query_id, row["statement"],
                                               nodes, links, date=row["date"],
-                                              channel=channel, location=location,
+                                              channel=channels, location=locations,
                                               url=row["url"]))
 
         sorted_data = sorted(results, key=lambda x: x.weight)
@@ -91,6 +96,7 @@ class SearchEngine():
             .head(10)
         )
 
+        print(results)
         query_node, query_entities = self.insert_query_elements(query)
 
         if query_node is not None:
