@@ -30,3 +30,7 @@ services:
       - NEO4JLABS_PLUGINS=["apoc", "graph-algorithms"]
     volumes:
       - ./neo4j.dump:/var/lib/neo4j/import/neo4j.dump
+    command: >
+      /bin/bash -c "
+       neo4j-admin database load --from-path import 'neo4j' && neo4j console
+       "
