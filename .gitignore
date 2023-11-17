@@ -1,3 +1,4 @@
 *.csv
 .idea
 kg/constanst.py
+neo4j.dump
