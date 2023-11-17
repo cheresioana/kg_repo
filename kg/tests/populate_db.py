@@ -141,7 +141,7 @@ def get_simple_keywords(row):
 
 
 def populate():
-    df = pd.read_csv('../data/data_with_embeddings.csv')
+    df = pd.read_csv('data/data2_euvsdisinfo_embeddings.csv')
     connector = NeoConnector()
     i = 0
 
@@ -152,7 +152,7 @@ def populate():
         title_entities = eval(row['title_entities'])
         keywords = eval(row['keywords'])
         tags = eval(row['tags'])
-        print(row)
+        print(row['statement'])
         row['embedding'] = eval(row['embedding'])
         if pd.isna(row['date']):
             row["date"] = ""
@@ -164,7 +164,8 @@ def populate():
 
         spread_locations = eval(row['spread_location'])
         for location in spread_locations:
-            connector.insert_location(record_id, location)
+            if location is not None:
+                connector.insert_location(record_id, location)
 
         fake_news_sources = eval(row['fake_news_source'])
         for source in fake_news_sources:
