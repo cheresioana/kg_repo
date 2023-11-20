@@ -17,11 +17,11 @@ class SearchEngine():
         self.neo_connector = NeoConnector()
         self.neo_algo = NeoAlgorithms()
 
-    def insert_query_elements(self, query):
+    def insert_query_elements(self, query, query_embedding):
         response = requests.post(AGGREGATOR_URL, json={'statement': query})
         if response.status_code == 200:
             entities = response.json()
-            query_node = self.neo_connector.insert_search_statement(query)
+            query_node = self.neo_connector.insert_search_statement(query, query_embedding)
             print(entities)
             self.neo_connector.insert_statement_entities(query_node.intra_id, entities)
             return query_node, entities
@@ -88,7 +88,10 @@ class SearchEngine():
     def find_results(self, query):
         clean_query = clean_text(query)
         query_embedding = self.embeddingWrapper.get_embedding(clean_query)
-        statements = self.neo_connector.get_statements_vectors()
+        #print(query_embedding)
+
+
+        '''statements = self.neo_connector.get_statements_vectors()
         df = pd.DataFrame(statements)
         df["similarity"] = df['embedding'].apply(lambda x: cosine_similarity(x, query_embedding))
         results = (
@@ -96,8 +99,12 @@ class SearchEngine():
             .head(10)
         )
 
-        print(results)
-        query_node, query_entities = self.insert_query_elements(query)
+        print(results)'''
+        query_node, query_entities = self.insert_query_elements(query, query_embedding)
+
+        statements = self.neo_connector.get_top10_cosine_vectors(query_node.intra_id)
+        results = pd.DataFrame(statements)
+        print(results.head())
 
         if query_node is not None:
             path_result = self.compute_paths(query_node.intra_id, results)

@@ -31,7 +31,7 @@ services:
       - NEO4J_AUTH=neo4j/ioana123
       - NEO4J_apoc_export_file_enabled=true
       - NEO4J_apoc_import_file_enabled=true
-      - NEO4JLABS_PLUGINS=["apoc", "graph-algorithms"]
+      - NEO4JLABS_PLUGINS=["apoc", "graph-data-science"]
     volumes:
       - ./persistent_data/data:/data
       - ./persistent_data/logs:/logs

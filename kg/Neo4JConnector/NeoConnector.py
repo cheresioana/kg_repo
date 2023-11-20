@@ -68,14 +68,14 @@ class NeoConnector:
                 record = records[0].data()['n']
                 return record['id']
 
-    def insert_search_statement(self, statement):
+    def insert_search_statement(self, statement, query_embedding):
         INSERT_STATEMENT = """USE neo4j
-            MERGE (n:Fake_Statement {statement: $input}) 
+            MERGE (n:Fake_Statement {statement: $input, embedding: $embedding}) 
             SET n.query = 1, n.id = ID(n), n.tag='query', n.intra_id = ID(n)
             RETURN n   
         """
         with self.driver.session() as session:
-            records, summary, keys = self.driver.execute_query(INSERT_STATEMENT, input=statement)
+            records, summary, keys = self.driver.execute_query(INSERT_STATEMENT, input=statement, embedding=query_embedding)
             if len(records) > 0:
                 record = records[0].data()['n']
                 return Node(record['intra_id'], record['statement'], record['id'], record['tag'])
@@ -711,6 +711,23 @@ class NeoConnector:
             records, summary, keys = self.driver.execute_query(
                 query,
                 database_="neo4j",
+            )
+            statements = [p.data() for p in records]
+        return statements
+
+    def get_top10_cosine_vectors(self, query_id):
+        query = '''USE neo4j 
+        MATCH (n:Fake_Statement), (p:Fake_Statement) 
+        WHERE n.id = $query_id and p.query IS NULL 
+        WITH n, p, gds.similarity.cosine(n.embedding, p.embedding) AS similarity 
+        RETURN p.id as id, ID(p) as intra_id, p.embedding as embedding, 
+        p.statement as statement, p.date as date, p.url as url ORDER BY 
+        similarity DESC LIMIT 10'''
+        with self.driver.session() as session:
+            records, summary, keys = self.driver.execute_query(
+                query,
+                database_="neo4j",
+                query_id=query_id
             )
             statements = [p.data() for p in records]
         return statements
