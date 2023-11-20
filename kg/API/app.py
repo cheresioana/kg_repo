@@ -1,9 +1,8 @@
 import sys
 import os
 
-
-
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from  logs import logger
 from tests.populate_db import populate
 from constanst import AGGREGATOR_URL
 
@@ -31,7 +30,7 @@ connector = NeoConnector()
 chat = ChatGPTWrapper()
 CORS(app)
 
-df = pd.read_csv('data/data2.csv')
+#df = pd.read_csv('data/data2.csv')
 
 
 @app.route('/sample_kg', methods=['GET'])
@@ -54,6 +53,7 @@ def get_sample_kg():
 
 @app.route('/get_kg', methods=['GET'])
 def get_kg():
+    logger.info("Get /get_kg")
     kg = connector.get_kg()
     return jsonify(kg)
 
@@ -114,11 +114,12 @@ def analyze():
 @app.route('/analyze2', methods=['POST'])
 def analyze2():
     data = request.get_json()
+    logger.info(f"analyze2 {data}")
     search_engine = SearchEngine()
     start_time = time.time()
     keywords, show_links, show_nodes, path_result, origin_node = search_engine.find_results(data['statement'])
     duration = time.time() - start_time
-    print(f"The search took {duration} seconds to run.")
+    logger.info(f"The search took {duration} seconds to run.")
     json_response = {
         'origin': [origin_node],
         'keywords': keywords,
@@ -127,25 +128,23 @@ def analyze2():
         'all_results': path_result
     }
     json_str = json.dumps(json_response, cls=ComplexEncoder, indent=4)
-    with open("mihai.json", "w") as json_file:
-        json.dump(json_response, json_file, cls=ComplexEncoder, indent=2)
     return json_str
 
 
-@app.route('/node_info/<id>', methods=['GET'])
-def get_node_info(id):
-    res = df[df['id'] == int(id)]
-    if len(res) == 0:
-        return jsonify([])
-    res.fillna(0, inplace=True)
-    result = res.iloc[0]
-
-    return jsonify(result.to_dict())
+# @app.route('/node_info/<id>', methods=['GET'])
+# def get_node_info(id):
+#     res = df[df['id'] == int(id)]
+#     if len(res) == 0:
+#         return jsonify([])
+#     res.fillna(0, inplace=True)
+#     result = res.iloc[0]
+#
+#     return jsonify(result.to_dict())
 
 
 @app.route('/addStatement', methods=['POST'])
 def addStatement():
-    print("ADD STATEMENT")
+    logger.info("ADD STATEMENT")
     data = request.get_json()
     print(data)
     intra_id = data['intra_id']

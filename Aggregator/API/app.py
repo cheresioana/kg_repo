@@ -6,6 +6,7 @@ import json
 from flask_cors import CORS
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from knowledge_extraction.EntityExtractor import EntityExtractor
+from  logs import logger
 
 app = Flask(__name__)
 extractor = EntityExtractor()
@@ -28,17 +29,15 @@ def get_kg():
 
 @app.route('/keywords', methods=['POST'])
 def get_keywords():
+
     data = request.get_json()
-    print(data)
-    print(data['statement'])
+    logger.info(f"Called get keywords from aggregator {data}")
     entities = extractor.extract_entities(data['statement'])
     keyword = extractor.get_keywords_from_text(data['statement'], entities)
-    print(entities)
-    print(keyword)
 
     if keyword.get('simple_keyword') is not None:
         entities['simple_keyword'] = keyword['simple_keyword']
-
+    logger.info(f"Response aggregator {entities}")
     return jsonify(entities)
 
 

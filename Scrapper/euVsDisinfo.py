@@ -112,7 +112,7 @@ def crawl_summary_page(url):
     fieldnames = ['statement', 'date', 'debunking_link', 'fake_news_content', 'debunking_argument', 'fake_news_source',
                   'spread_location', 'tags']
     csv_file = 'dataEuVsDisinfo.csv'
-    index = 0
+
     for n in news:
         if not localState.already_parsed(n.get_attribute('href').strip()):
             data_object = DataObject('EuVsDisInfo', 'https://euvsdisinfo.eu/disinformation-cases/')
@@ -125,21 +125,23 @@ def crawl_summary_page(url):
             print(data_object.statement)
             print(data_object.date)
             print(data_object.debunking_link)
-
-            parse_debunk_page(data_object)
-            # with open(csv_file, 'a', newline='', encoding='utf-8') as file:
-            #     writer = csv.DictWriter(file, fieldnames=fieldnames)
-            #     if index == 0:
-            #         writer.writeheader()
-            #     writer.writerow({fieldname: getattr(data_object, fieldname, '') for fieldname in fieldnames})
-            index += 1
-            if data_object.statement.strip() == "":
-                print("FARA STATEMENT : " + data_object.debunking_link)
-                continue
-            queue.send_message(json.dumps(data_object.json_encoder()))
-            localState.append(data_object)
-            print(index)
-            index = index + 1
+            try:
+                parse_debunk_page(data_object)
+                # with open(csv_file, 'a', newline='', encoding='utf-8') as file:
+                #     writer = csv.DictWriter(file, fieldnames=fieldnames)
+                #     if index == 0:
+                #         writer.writeheader()
+                #     writer.writerow({fieldname: getattr(data_object, fieldname, '') for fieldname in fieldnames})
+                index += 1
+                if data_object.statement.strip() == "":
+                    print("FARA STATEMENT : " + data_object.debunking_link)
+                    continue
+                queue.send_message(json.dumps(data_object.json_encoder()))
+                localState.append(data_object)
+                print(index)
+                index = index + 1
+            except:
+                print("A avut o eroare")
 
     pagination_div = driver.find_element(By.CSS_SELECTOR, '.b-pagination')
     items = pagination_div.find_elements(By.CSS_SELECTOR, '.b-pagination__item')
@@ -161,11 +163,13 @@ def crawl_summary_page(url):
 
     print(next_page_link)
     if next_page_link != '':
+        driver.close()
         crawl_summary_page(next_page_link)
 
     driver.quit()
 
 
 if __name__ == '__main__':
-    crawl_summary_page("https://euvsdisinfo.eu/disinformation-cases/")
+    #crawl_summary_page("https://euvsdisinfo.eu/disinformation-cases/")
+    crawl_summary_page("https://euvsdisinfo.eu/disinformation-cases/page/117/")
     # crawl_summary_page("https://euvsdisinfo.eu/disinformation-cases/page/4/")

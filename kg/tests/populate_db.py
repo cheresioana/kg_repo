@@ -141,7 +141,7 @@ def get_simple_keywords(row):
 
 
 def populate():
-    df = pd.read_csv('data/data2_euvsdisinfo.csv')
+    df = pd.read_csv('data/data_total.csv')
     connector = NeoConnector()
     i = 0
 

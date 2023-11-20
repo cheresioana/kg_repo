@@ -8,6 +8,8 @@ services:
       - "5006:5006"
     expose:
       - "5006"
+    volumes:
+      - ./logs/aggregator:/logs
   kg:
     build:
       context: ./kg
@@ -18,6 +20,8 @@ services:
     links:
       - neo4j
       - aggregator
+    volumes:
+      - ./logs/kg:/logs
   neo4j:
     image: neo4j:latest
     ports:
@@ -29,8 +33,5 @@ services:
       - NEO4J_apoc_import_file_enabled=true
       - NEO4JLABS_PLUGINS=["apoc", "graph-algorithms"]
     volumes:
-      - ./neo4j.dump:/var/lib/neo4j/import/neo4j.dump
-    command: >
-      /bin/bash -c "
-       neo4j-admin database load --from-path import 'neo4j' && neo4j console
-       "
+      - ./persistent_data/data:/data
+      - ./persistent_data/logs:/logs
