@@ -2,3 +2,5 @@
 .idea
 kg/constanst.py
 neo4j.dump
+persistent_data
+logs
