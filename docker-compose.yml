@@ -9,7 +9,7 @@ services:
     expose:
       - "5006"
     volumes:
-      - ./logs/aggregator:/logs
+      - ./persistent_data/code_logs/agg:/aggregator/logs
   kg:
     build:
       context: ./kg
@@ -21,7 +21,7 @@ services:
       - neo4j
       - aggregator
     volumes:
-      - ./logs/kg:/logs
+      - ./persistent_data/code_logs/kg:/kg/logs
   neo4j:
     image: neo4j:latest
     ports:
