@@ -52,4 +52,4 @@ services:
     volumes:
       - ./certbot/conf:/etc/letsencrypt
       - ./certbot/www:/var/www/certbot
-    command: certonly --webroot -w /var/www/certbot --force-renewal --email mtopor98@gmail.com -d mindbugs.go.ro --agree-tos
+    command: certonly --webroot -w /var/www/certbot --force-renewal --email mtopor98@gmail.com -d 82.79.70.62 --agree-tos
