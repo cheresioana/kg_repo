@@ -1,0 +1,65 @@
+.btn-light:hover {
+    background-color: #f8f9fa;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    font-weight: bold;
+}
+
+.statement-box {
+    background-color: #f8f9fa; /* culoare deschisă pentru fundal */
+    border-radius: 5px; /* margini rotunjite */
+}
+.statement-box:hover {
+    background-color: #e9ecef; /* culoare puțin mai închisă atunci când mouse-ul trece peste */
+}
+.btn-light:hover {
+    background-color: #e9ecef;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.info-button-statement{
+    display: flex;
+    flex-wrap: wrap;
+    align-content: space-around;
+}
+
+#visualization {
+    width: 100%;
+    border: 1px solid lightgray;
+    background: white;
+}
+
+.loading-overlay {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.8);
+    text-align: center;
+}
+
+.loading-message {
+    position: absolute;
+    top: 65%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.loading-spinner {
+    position: absolute;
+    top: 35%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border: 4px solid rgba(0, 0, 0, 0.3);
+    border-radius: 50%;
+    border-top: 4px solid #3498db;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+}

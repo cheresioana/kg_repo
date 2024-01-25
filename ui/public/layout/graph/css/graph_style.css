@@ -1,0 +1,31 @@
+
+.info_bar {
+    position: fixed;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    padding: 0;
+    padding: 20px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    transition: left 0.2s ease-out;
+    z-index: 999;
+}
+
+.info_bar.show {
+    left: 0;
+}
+
+.info_style{
+    overflow: auto;
+    max-height: 100vh;
+    direction: rtl;
+
+
+}
+
+@media (max-width: 407px) {
+    .info_style {
+        max-height: 40vh;
+
+    }
+}
