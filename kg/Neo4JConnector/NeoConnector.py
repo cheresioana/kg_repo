@@ -721,7 +721,7 @@ class NeoConnector:
         WHERE n.id = $query_id and p.query IS NULL 
         WITH n, p, gds.similarity.cosine(n.embedding, p.embedding) AS similarity 
         RETURN p.id as id, ID(p) as intra_id, p.embedding as embedding, 
-        p.statement as statement, p.date as date, p.url as url ORDER BY 
+        p.statement as statement, p.date as date, p.url as url, similarity ORDER BY 
         similarity DESC LIMIT 10'''
         with self.driver.session() as session:
             records, summary, keys = self.driver.execute_query(
@@ -730,6 +730,26 @@ class NeoConnector:
                 query_id=query_id
             )
             statements = [p.data() for p in records]
+        return statements
+
+    def get_top_cosine_vectors(self, query_id):
+        query = '''USE neo4j 
+           MATCH (n:Fake_Statement), (p:Fake_Statement) 
+           WHERE n.id = $query_id and p.query IS NULL 
+           WITH n, p, gds.similarity.cosine(n.embedding, p.embedding) AS similarity 
+           WHERE similarity > 0.8
+           RETURN p.id as id, ID(p) as intra_id, p.embedding as embedding, 
+           p.statement as statement, p.date as date, p.url as url, similarity ORDER BY 
+           similarity DESC LIMIT 50'''
+        with self.driver.session() as session:
+            records, summary, keys = self.driver.execute_query(
+                query,
+                database_="neo4j",
+                query_id=query_id
+            )
+            statements = [p.data() for p in records]
+        if len(statements) < 10:
+            return self.get_top10_cosine_vectors(query_id)
         return statements
 
     def get_statement_location(self, intra_id):

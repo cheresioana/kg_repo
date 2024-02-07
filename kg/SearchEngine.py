@@ -10,6 +10,7 @@ from Neo4JConnector.NeoAlgorithms import NeoAlgorithms
 from Neo4JConnector.NeoConnector import NeoConnector
 from utils import clean_text
 from constanst import AGGREGATOR_URL
+from  logs import logger
 
 class SearchEngine():
     def __init__(self):
@@ -65,8 +66,15 @@ class SearchEngine():
             paths = self.find_path_between_nodes(query_id, int(row["intra_id"]))
             locations = self.neo_connector.get_statement_location(row["intra_id"])
             channels = self.neo_connector.get_statement_channel(row["intra_id"])
-
-            print(f'Channels {channels}, Locations {locations}')
+            result_node = Node(row["intra_id"], row["statement"],
+                                           row["id"], tag="statement_node")
+            results.append(ResultItem(0,
+                                      row["intra_id"],
+                                      query_id, row["statement"],
+                                      [result_node],
+                                      [Link(result_node.id, query_id)], date=row["date"],
+                                      channel=channels, location=locations,
+                                      url=row["url"]))
             if len(paths) < 1:
                 continue
             min_weight = paths[0]["weight"]
@@ -102,15 +110,24 @@ class SearchEngine():
         print(results)'''
         query_node, query_entities = self.insert_query_elements(query, query_embedding)
 
-        statements = self.neo_connector.get_top10_cosine_vectors(query_node.intra_id)
+        statements = self.neo_connector.get_top_cosine_vectors(query_node.intra_id)
+        logger.info("statements")
         results = pd.DataFrame(statements)
-        print(results.head())
+
+
+        print(results.columns)
+        print(results[["statement", "similarity"]])
+        top_results = results[results['similarity'] > 0.87]
+        if len(top_results) < 3:
+            top_results = results.head(3)
 
         if query_node is not None:
             path_result = self.compute_paths(query_node.intra_id, results)
+
             show_nodes = []
             show_links = []
-            for index, row in results.head(3).iterrows():
+
+            for index, row in top_results.iterrows():
                 filtered_items = [item for item in path_result if item.intra_id == row["intra_id"]]
                 for filtered_item in filtered_items:
                     filtered_item.selected = 1
