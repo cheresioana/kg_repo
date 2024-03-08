@@ -1,0 +1,10 @@
+The Scrapers module is responsible for scraping different websites in order to index their content
+
+When running a main file the argumens can be:
+    scarpe_all: which scrapes all the data,
+    rescrape_faulty: which rescrapes only the elements which are in the faulty list.
+        This is for improvements in code for the elements with missing fields.
+        If in the faulty files it is added manual_verification TRUE then it just sends manually completed data
+        from the file dirrectly to the aggregator
+    updates_only: here the code scrapes the wesite and stops at the first element encountered before since it consideres
+        that from there on all the data is scraped

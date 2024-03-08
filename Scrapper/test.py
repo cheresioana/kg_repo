@@ -1,9 +1,8 @@
 from DataObject import DataObject
 from LocalTranslator import LocalTranslator
-from googletrans import Translator
 import unittest
 
-from veridica_scraper import parse_news_page
+from scrapers.veridica.veridica_scraper import parse_news_page
 from ress import extract_text
 
 '''
@@ -58,6 +57,12 @@ class TestBasicFunctions(unittest.TestCase):
         parse_news_page(data, page)
         self.assertEqual(['Ucraina', 'Rusia', 'UE'], data.tags)
         self.assertEqual("Marin Gherman", data.journalist_name)
+
+    def test_parse_tags(self):
+        data = DataObject()
+        page = 'https://www.veridica.ro/en/disinformation/disinformation-chisinau-has-called-on-romania-for-support-to-defend-against-russia-and-this-will-lead-to-the-annexation-of-moldova'
+        parse_news_page(data, page)
+        self.assertEqual(['Republica Moldova' , 'Russia', 'Romania'], data.tags)
 
 
 if __name__ == '__main__':

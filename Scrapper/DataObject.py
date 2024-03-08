@@ -37,6 +37,16 @@ class DataObject:
         self.debunk_sources = []
         self.topic = ''
 
+    def init_from_df(self, row):
+        # For each column, set an attribute with the same name and value
+        for column_name in row.index:
+            if type(row[column_name]).__name__ == 'int64':
+                setattr(self, column_name.lower(), int(row[column_name]))
+            elif type(row[column_name]).__name__ == 'bool_':
+                setattr(self, column_name.lower(), bool(row[column_name]))
+            else:
+                setattr(self, column_name.lower(), row[column_name])
+        self.verdict = bool(self.verdict)
     def __str__(self):
         return f"""DataObject(
     crawler_name={self.crawler_name},
@@ -81,7 +91,7 @@ class DataObject:
             'crawled_date': self.crawled_date,
             'narrative': self.narrative,
 
-            'verdict': self.verdict,
+            'verdict': str(self.verdict),
             'speaker': self.speaker,
             'speaker_job_title': self.speaker_job_title,
             'media_channel': self.media_channel,

@@ -12,12 +12,12 @@ class LocalTranslator:
         self.translator = Translator()
 
 
-    def translate_call(self, text, src_lang='ro', dest_lang='en', retries=3, delay=5):
+    def translate_call(self, text, dest_lang='en', retries=3, delay=5):
         if text is None or text == "":
             return ""
         for i in range(retries):
             try:
-                translation = self.translator.translate(text, src=src_lang, dest=dest_lang)
+                translation = self.translator.translate(text, dest=dest_lang)
                 if translation is not None and translation.text is not None:
                     return translation.text
                 else:
@@ -27,15 +27,17 @@ class LocalTranslator:
                 print(f"An error calling translation api Error:{e} For text: {text}")
 
             time.sleep(delay * (2 ** i))  # Exponential backoff
+        print("Failed to translate text after multiple retries")
+        return text
+        #raise Exception("Failed to translate text after multiple retries")
 
-        raise Exception("Failed to translate text after multiple retries")
-    def robust_translate(self, text, src_lang='ro', dest_lang='en', retries=3, delay=5):
+    def robust_translate(self, text, dest_lang='en', retries=3, delay=5):
         if text is None or text == "":
             return ""
         chunk_length = 5000
         chunks = [text[i:i+chunk_length] for i in range(0, len(text), chunk_length)]
         translated_chunks = []
         for chunk in chunks:
-            translated_chunks.append(self.translate_call(chunk, src_lang='ro', dest_lang='en', retries=3, delay=5))
+            translated_chunks.append(self.translate_call(chunk, dest_lang='en', retries=3, delay=5))
         return ''.join(translated_chunks)
 
