@@ -16,6 +16,7 @@ class DataObject:
         self.crawler_origin = crawler_origin
         self.crawled_date = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         self.tags = []
+        self.languages = []
 
         self.fake_news_content = ''
         self.summary_explanation = ''
@@ -72,6 +73,7 @@ class DataObject:
     debunking_argument={self.debunking_argument},
     fake_news_content={self.fake_news_content},
     summary_explanation={self.summary_explanation},
+    languages={self.languages}
     )"""
 
     def clean_str(self, my_str):
@@ -105,5 +107,6 @@ class DataObject:
             'fake_news_content': self.clean_str(self.fake_news_content),
             'summary_explanation': self.clean_str(self.summary_explanation),
             'debunking_argument': self.clean_str(self.debunking_argument),
+            'languages': self.languages
 
         }

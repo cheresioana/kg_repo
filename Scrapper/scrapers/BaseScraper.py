@@ -25,3 +25,15 @@ class BaseScraper:
         if rescrape_faulty:
             self.local_state.remove_faulty(data_object.debunking_link)
 
+    def manual_inputted_data(self, debunking_link, rescrape_faulty):
+        """
+        If manual inputed data is found, then it just reads from the faulty csv and sends it directly to the aggregator
+        :param debunking_link rescrape_faulty:
+        :return: True (manual data is found), False (no manual data was found)
+        """
+        element = self.local_state.manual_verification(debunking_link)
+        if element is not None:
+            self.send_data(element, rescrape_faulty)
+            return True
+        return False
+
