@@ -18,13 +18,13 @@ class QueueConnectionModule:
         self.convertor = main_convertor
 
     def callback(self, ch, method, properties, body):
-        print(" [x] Received %r..." % body[:200])
+        print(f" [x] Received {body[:200]}...")
         payload = json.loads(body)
         payload['received_date'] = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         self.local_state.append_message(json.dumps(payload, indent=4))
         try:
             parsed_object = self.parser.parse(body)
-            self.local_state.save_parsed_entry(parsed_object)
+            self.local_state.save_parsed_entry(parsed_object, payload['crawler_name'] + "_data.csv")
             #self.convertor.convert_csv('data2.csv')
         except Exception as e:
             payload = json.loads(body)

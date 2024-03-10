@@ -8,6 +8,10 @@ from parsers.BaseParser2 import BaseParser2
 class LocalState:
     def __init__(self, db_filename='all_messages.json'):
         self.filename = db_filename
+        if not os.path.exists(self.filename):
+            with open(self.filename, 'a', encoding="utf-8") as f:
+                f.write('{}')
+
 
     def append_message(self, obj):
         with open(self.filename, 'r+', newline='', encoding="utf-8") as f:
