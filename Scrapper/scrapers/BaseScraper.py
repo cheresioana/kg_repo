@@ -8,11 +8,19 @@ from QueueConnectionModule import QueueConnectionModule
 
 class BaseScraper:
     def __init__(self, db_filename, faulty_filename):
+        """
+        Save the local state and the queue connection modules
+        """
         self.local_state = LocalState(db_filename, faulty_filename)
         self.queue = QueueConnectionModule()
 
     @abstractmethod
     def complete_info(self, data_obj: DataObject):
+        """
+        This abstract function is implemented in each class and decides if the dataobject scraped is complete
+        :param data_obj: data scraped
+        :return: True or False depending for each scraper what means a complete data object
+        """
         pass
 
     def send_data(self, data_object, rescrape_faulty):
