@@ -32,6 +32,8 @@ class DataObject:
         self.date = ''
         self.journalist_name = ''
         self.spread_location = []
+
+        # fake_news_source here is where the spread channels are like twitter, instagram, romania.tv etc
         self.fake_news_source = []
         self.debunk_sources = []
         self.topic = ''

@@ -1,0 +1,17 @@
+#deduplicate locations with lower and upper case
+
+MATCH (x:Location)
+WITH x, apoc.text.capitalizeAll(x.name) AS output
+MATCH (y:Location {name: output})
+WHERE x.name <> y.name
+call apoc.refactor.mergeNodes([x,y]) YIELD node
+RETURN node
+
+#delete duplicated relationships
+
+MATCH (a)-[r]-(b)
+WITH collect(r) as rels, a, b
+WHERE size(rels) > 1
+UNWIND tail(rels) as reltail
+DELETE reltail
+RETURN COUNT(*)

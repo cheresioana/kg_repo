@@ -11,7 +11,7 @@ import csv
 
 from QueueConnectionModule import QueueConnectionModule
 from country_domain_name import get_first_country_by_suffix, get_country_by_unique_language, \
-    get_first_country_by_domain_name
+    get_first_country_by_domain_name, get_country_lang
 from country_languages import *
 
 from DataObject import DataObject
@@ -122,6 +122,13 @@ class EuvsdisinfoScraper(BaseScraper):
         locations = list(set(locations))
         return locations
 
+    def get_language_by_location(self, locations):
+        res = []
+        for loc in locations:
+            language = get_country_lang(loc)
+            if language != None:
+                res.append(language)
+        return res
     def parse_debunk_page(self, data_object):
         browser_options = ChromeOptions()
         browser_options.headless = True
@@ -134,6 +141,8 @@ class EuvsdisinfoScraper(BaseScraper):
         data_object.fake_news_source, outlet_texts = self.get_fake_news_outlets(driver)
         data_object.languages = self.get_article_language(driver, data_object.debunking_link)
         data_object.spread_location = self.get_spread_location(data_object, outlet_texts)
+        if data_object.languages == [] and data_object.spread_location != []:
+            data_object.languages = self.get_language_by_location(data_object.spread_location)
         data_object.tags = self.get_tags(driver)
 
         driver.close()
@@ -158,9 +167,7 @@ class EuvsdisinfoScraper(BaseScraper):
             return False
         if data_obj.fake_news_source == []:
             return False
-        if data_obj.spread_location == []:
-            return False
-        if data_obj.languages == []:
+        if data_obj.spread_location == [] and data_obj.languages == []:
             return False
         if data_obj.tags == []:
             return False
@@ -198,7 +205,7 @@ class EuvsdisinfoScraper(BaseScraper):
                     if not self.complete_info(data_object):
                         self.local_state.append_faulty(data_object)
                         continue
-                    self.send_data(data_object, False)
+                    self.send_data(data_object, rescrape_faulty)
                 except Exception as e:
                     print(f"A avut o eroare {e}")
                     self.local_state.append_faulty(data_object)
@@ -239,6 +246,38 @@ class EuvsdisinfoScraper(BaseScraper):
         driver.quit()
 
 
+    def rescarpe_faulty(self, rescrape_faulty=False, updates_only=False):
+        # global index
+        # browser_options = ChromeOptions()
+        # browser_options.headless = True
+        #
+        # driver = Chrome(options=browser_options)
+        # driver.get(url)
+        #
+        # news = driver.find_elements(By.CSS_SELECTOR, '.b-archive__database-item')
+        df_faulty = self.local_state.get_faulty_df()
+        for index, row in df_faulty.iterrows():
+            link = row['debunking_link']
+            if not self.local_state.already_parsed(link):
+                if rescrape_faulty and self.manual_inputted_data(link, rescrape_faulty):
+                    continue
+                data_object = DataObject('EuVsDisInfo', 'https://euvsdisinfo.eu/disinformation-cases/')
+
+                data_object.statement = row['statement']
+                data_object.date = row['date']
+                data_object.debunking_link = link
+                try:
+                    self.parse_debunk_page(data_object)
+                    if not self.complete_info(data_object):
+                        self.local_state.append_faulty(data_object)
+                        continue
+                    self.send_data(data_object, True)
+                except Exception as e:
+                    print(f"A avut o eroare {e}")
+                    self.local_state.append_faulty(data_object)
+                print(index)
+
+
 if __name__ == '__main__':
     euvsdisinfo_scraper = EuvsdisinfoScraper(db_filename='euvsdisinfo_local_state.csv', faulty_filename='euvsdisinfo_faulty.csv')
     main_page = "https://euvsdisinfo.eu/disinformation-cases/"
@@ -247,7 +286,7 @@ if __name__ == '__main__':
     if sys.argv[1] == "scrape_all":
         euvsdisinfo_scraper.crawl_summary_page(main_page)
     elif sys.argv[1] == "rescrape_faulty":
-        euvsdisinfo_scraper.crawl_summary_page(main_page, rescrape_faulty=True)
+        euvsdisinfo_scraper.rescarpe_faulty(rescrape_faulty=True)
     elif sys.argv[1] == "updates_only":
         euvsdisinfo_scraper.crawl_summary_page(main_page, rescrape_faulty=False, updates_only=True)
     #crawl_summary_page("https://euvsdisinfo.eu/disinformation-cases/page/117/")

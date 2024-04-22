@@ -141,7 +141,7 @@ def get_simple_keywords(row):
 
 
 def populate():
-    df = pd.read_csv('data/data_total.csv')
+    df = pd.read_csv('all_data_with_embeddings2.csv')
     connector = NeoConnector()
     i = 0
 
@@ -154,12 +154,16 @@ def populate():
         tags = eval(row['tags'])
         print(row['statement'])
         row['embedding'] = eval(row['embedding'])
+
         if pd.isna(row['date']):
             row["date"] = ""
 
         record_id = connector.insert_statement(row)
+        #print(f'Title entities: {title_entities}')
         connector.insert_statement_entities(record_id, title_entities)
+        #print(f'keywords entities: {keywords}')
         connector.insert_statement_entities(record_id, keywords)
+        #print(f'Tags: {tags}')
         connector.insert_statement_entities(record_id, tags)
 
         spread_locations = eval(row['spread_location'])
@@ -173,11 +177,20 @@ def populate():
             base_url = parsed_url.netloc
             connector.insert_channel(record_id, base_url)
 
+        try:
+            languages = eval(row['languages'])
+            for lang in languages:
+                if lang != '':
+                    connector.insert_language(record_id, lang)
+        except:
+            rl = row['languages']
+            print(f'ERROR {rl}')
+
         #connector.insert_statement_entities(row['id'], keywords)
         print(i)
         i = i + 1
-        #if i > 30:
-        #    return 0
+        # if i > 5:
+        #     return 0
 
         #exit(0)
         # connector.insert_statement_entities(row, news_entities)

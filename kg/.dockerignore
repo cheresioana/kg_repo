@@ -1,0 +1,5 @@
+# Exclude the doctorat folder
+doctorat/
+
+# Exclude any CSV files
+*.csv

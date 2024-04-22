@@ -23,7 +23,7 @@ class OpenAIEmbeddingWrapper:
         df['clean_combined_text'] = df["combined_text"].apply(clean_text)
 
         df["embedding"] = df['clean_combined_text'].apply(lambda x: get_embedding(x, engine=embedding_model))
-        df.to_csv("data/data_with_embeddings.csv")
+        df.to_csv("data/all_data_with_embeddings.csv")
 
     def search_vector_space_dataframe(self, df, query, n=3):
         clean_query = clean_text(query)

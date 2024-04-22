@@ -53,6 +53,10 @@ class LocalState:
             dictwriter_object.writerow(obj.__dict__)
             f.close()
 
+    def get_faulty_df(self):
+        data = pd.read_csv(self.faulty_filename, index_col=False)
+        return data
+
 
     def already_parsed(self, link):
         return link in self.crawled_links

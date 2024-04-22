@@ -75,8 +75,41 @@ class ResultItem:
         self.url = url
 
 
+class SearchResult:
+    intra_id: int
+    query_id: int
+    statement: str
+    selected: int
+    date: str
+    channel: List[str]
+    location: List[str]
+    url: str
+    languages: List[str]
+
+    def __init__(self, intra_id, query_id, statement,
+                 selected=0, date="", channel=[], location=[], url="", languages=[]):
+        self.intra_id = intra_id
+        self.query_id = query_id
+        self.selected = selected
+        self.statement = statement
+        self.date = date
+        self.channel = channel
+        self.location = location
+        self.url = url
+        self.languages = languages
+
+    def toJson(self):
+        return self.__dict__
+
+
+class MyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, SearchResult):
+            return obj.__dict__
+        return json.JSONEncoder.default(self, obj)
+
 class ComplexEncoder(json.JSONEncoder):
     def default(self, obj):
-        if isinstance(obj, (Node, Link, ResultItem)):
+        if isinstance(obj, (Node, Link, ResultItem, SearchResult)):
             return obj.__dict__
         return super(ComplexEncoder, self).default(obj)

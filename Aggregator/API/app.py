@@ -32,9 +32,11 @@ def get_keywords():
 
     data = request.get_json()
     logger.info(f"Called get keywords from aggregator {data}")
+    print(f"Called get keywords from aggregator {data}")
     entities = extractor.extract_entities(data['statement'])
     keyword = extractor.get_keywords_from_text(data['statement'], entities)
-
+    print(f"Entities {entities}")
+    print(f"Keywords {keyword}")
     if keyword.get('simple_keyword') is not None:
         entities['simple_keyword'] = keyword['simple_keyword']
     logger.info(f"Response aggregator {entities}")

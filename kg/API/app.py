@@ -54,7 +54,10 @@ def get_sample_kg():
 @app.route('/get_kg', methods=['GET'])
 def get_kg():
     logger.info("Get /get_kg")
+    print("get kg")
     kg = connector.get_kg()
+    with open("sample.json", "w") as outfile:
+        json.dump(kg, outfile)
     return jsonify(kg)
 
 
@@ -62,53 +65,6 @@ def get_kg():
 def get_similar_kg(id):
     similar_list = connector.get_similar(id)
     return jsonify(similar_list)
-
-
-@app.route('/analyze', methods=['POST'])
-def analyze():
-    data = request.get_json()
-    print(data)
-    print(data['statement'])
-    response = requests.post(AGGREGATOR_URL, json=data)
-    if response.status_code == 200:
-        entities = response.json()
-        statement_id = connector.insert_search_statement(data['statement'])
-        print(statement_id)
-        connector.insert_statement_entities(statement_id, entities)
-        print(response.json())
-        print(entities.values)
-        merged_list = [value for sublist in entities.values() for value in sublist]
-        print(merged_list)
-
-        # connector.set_similarity()
-        # connector.run_louvain_algorithm()
-        connector.del_similar_rel()
-        neo_aglo.knn()
-        res = neo_aglo.find_similar(statement_id)
-        selected_communities = [r['community'] for r in res]
-        selected_communities = list(filter(lambda x: x is not None, selected_communities))
-        counter = Counter(selected_communities)
-        selected_community = -1
-        if len(selected_communities) > 0:
-            print("community detected")
-
-            selected_community = counter.most_common(1)[0][0]
-            print(selected_community)
-            subgraf = connector.get_community_detected_subgraph(statement_id, selected_community)
-        else:
-            print("community NOT detected")
-            subgraf = connector.get_community_not_detected_subgraph(statement_id)
-        debunk = 'save the money'
-        # debunk = chat.create_debunk(data['statement'])
-        dic = {
-            'keywords': merged_list,
-            'subgraf': subgraf,
-            'debunk': debunk
-        }
-        return jsonify(dic)
-    else:
-        print("Failed to send data")
-    return jsonify([])
 
 
 @app.route('/analyze2', methods=['POST'])
@@ -120,11 +76,10 @@ def analyze2():
     keywords, show_links, show_nodes, path_result, origin_node = search_engine.find_results(data['statement'])
     duration = time.time() - start_time
     logger.info(f"The search took {duration} seconds to run.")
+    print(f"The search took {duration} seconds to run.")
     json_response = {
         'origin': [origin_node],
         'keywords': keywords,
-        'links': show_links,
-        'nodes': show_nodes,
         'all_results': path_result
     }
     json_str = json.dumps(json_response, cls=ComplexEncoder, indent=4)

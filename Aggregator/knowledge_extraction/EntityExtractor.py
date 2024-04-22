@@ -39,9 +39,10 @@ class EntityExtractor():
         nlp = spacy.load("en_core_web_sm")
         nlp.add_pipe("textrank")
         processed = nlp(text)
+        print(text)
         keywords = [p.text for p in processed._.phrases]
 
-        # print(keywords)
+        print(keywords)
 
         result = [item for item in keywords if item not in ents]
         # print(result)

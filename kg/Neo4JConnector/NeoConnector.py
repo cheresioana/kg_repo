@@ -86,10 +86,10 @@ class NeoConnector:
     def insert_statement_entities(self, doc_id, entities):
         entity_keys = list(entities.keys())
         for key in entity_keys:
-            #     if key == 'PERSON':
-            #         self.__insert_person_entities(doc_id, entities[key])
-            #     else:
-            self.insert_simple_entity(doc_id, entities, key)
+                # if key == 'PERSON':
+                #     self.__insert_person_entities(doc_id, entities[key])
+                # else:
+                self.insert_simple_entity(doc_id, entities, key)
 
     def insert_simple_entity(self, doc_id, entities, key):
         QUERY_ENTITIES = """USE neo4j
@@ -114,6 +114,23 @@ class NeoConnector:
         with self.driver.session() as session:
             session.run(QUERY_ENTITIES, location=location, doc_id=doc_id)
 
+    def insert_words(self, id, words):
+        QUERY_ENTITIES = """USE neo4j
+            MATCH (n:Fake_Statement {id: $id})
+            SET n.words = $words
+            """
+        with self.driver.session() as session:
+            session.run(QUERY_ENTITIES, words=words, id=id)
+
+    def insert_language(self, doc_id, lang):
+        QUERY_ENTITIES = """USE neo4j
+               MATCH (n:Fake_Statement {id: $doc_id})
+               MERGE (e:Language {name: $lang})
+               MERGE (n)-[:HAS_LANGUAGE]->(e)
+               """
+        with self.driver.session() as session:
+            session.run(QUERY_ENTITIES, lang=lang, doc_id=doc_id)
+
     def insert_channel(self, doc_id, channel):
         QUERY_ENTITIES = """USE neo4j
             MATCH (n:Fake_Statement {id: $doc_id})
@@ -133,7 +150,7 @@ class NeoConnector:
             MATCH (n:Fake_Statement {id: $doc_id})
                 MERGE (e:Person {name: $name, status: $status, uri: $uri})
                 SET e.intra_id = ID(e)
-                MERGE (n)-[:HAS_KEYWORD {weight:1}]->(e)
+                MERGE (n)-[:MENTIONS_PERSON {weight:1}]->(e)
                 """
 
         # Missing MERGE (n)-[:MENTIONS_PERSON]->(e)
@@ -204,6 +221,7 @@ class NeoConnector:
                     # here I try exact matching
                     official_name = response.json()['results']['bindings'][0]['entityLabel']['value']
                     uri = response.json()['results']['bindings'][0]['entity']['value']
+                    print(f"From {entity} to {official_name}")
                     self.__insert_person(doc_id, official_name, uri, status="known")
                 except:
                     # in case there is no exact matching I use wikidata search engine
@@ -336,6 +354,27 @@ class NeoConnector:
             print(records)
             print(summary)
 
+    def _get_connected_statements(self, keywords_ids):
+        print(keywords_ids)
+        with self.driver.session() as session:
+            statements = []
+            for key_id in keywords_ids:
+                records, summary, keys = self.driver.execute_query(
+                    "USE neo4j "
+                    "MATCH(p:Fake_Statement)--(n) "
+                    "WHERE ID(n) = $keyword_id "
+                    "WITH apoc.node.degree(p) as degree, p "
+                    "return DISTINCT p, p.id as intra_id, p.statement as statement, "
+                    "'fake_news' as tag, ID(p) as id, "
+                    " p.community as community, degree"
+                    " ORDER BY degree DESC "
+                    "LIMIT $limit",
+
+                    database_="neo4j", limit=25, keyword_id=key_id
+                )
+                statements.extend([p.data() for p in records])
+            return statements
+
     def _get_statement_nodes(self, limit=200):
         with self.driver.session() as session:
             records, summary, keys = self.driver.execute_query(
@@ -352,13 +391,13 @@ class NeoConnector:
             statements = [p.data() for p in records]
             return statements
 
-    def _get_top_keywords(self, limit=10):
+    def _get_top_keywords(self, limit=12):
         with self.driver.session() as session:
             records, summary, keys = self.driver.execute_query(
                 '''
-            MATCH (n)--()
+            MATCH (n)--(c:Fake_Statement)
             WHERE not n:Fake_Statement
-            WITH n, apoc.node.degree(n) as degree
+            WITH n, count(*) as degree
             return DISTINCT(n) , n.name as name, degree, labels(n)[0] as tag, ID(n) as id
             ORDER BY degree DESC
             LIMIT $limit
@@ -370,7 +409,7 @@ class NeoConnector:
         with self.driver.session() as session:
             records, summary, keys = self.driver.execute_query(
                 '''
-            MATCH (n)-[:HAS_KEYWORD]-(p)
+            MATCH (n)--(p)
             WHERE ID(n) in $id_list1 and ID(p) in $id_list2
             RETURN ID(n) AS source, ID(p) AS target
             ''', database_="neo4j", id_list1=id_list1, id_list2=id_list2)
@@ -393,10 +432,13 @@ class NeoConnector:
 
     def get_kg(self):
 
-        statements = self._get_statement_nodes()
+        #statements = self._get_statement_nodes()
         key_elements = self._get_top_keywords()
-        id_statements = [statement["id"] for statement in statements]
         id_keys = [key["id"] for key in key_elements]
+        statements = self._get_connected_statements(keywords_ids=id_keys)
+
+        id_statements = [statement["id"] for statement in statements]
+
 
         links = self._get_links(id_statements, id_keys)
         id_statements_linked = list(set([link['source'] for link in links]))
@@ -732,6 +774,22 @@ class NeoConnector:
             statements = [p.data() for p in records]
         return statements
 
+    def get_all_statements(self):
+        query = '''USE neo4j 
+                MATCH (p:Fake_Statement) 
+                WHERE p.query IS NULL
+                RETURN p.id as id, ID(p) as intra_id, p.embedding as embedding, 
+                p.statement as statement'''
+        with self.driver.session() as session:
+            records, summary, keys = self.driver.execute_query(
+                query,
+                database_="neo4j",
+            )
+            statements = [p.data() for p in records]
+        return statements
+
+
+
     def get_top_cosine_vectors(self, query_id):
         query = '''USE neo4j 
            MATCH (n:Fake_Statement), (p:Fake_Statement) 
@@ -751,6 +809,47 @@ class NeoConnector:
         if len(statements) < 10:
             return self.get_top10_cosine_vectors(query_id)
         return statements
+
+    def get_mix_cosine_words(self, query_id, query_words):
+        query = '''USE neo4j 
+           MATCH (n:Fake_Statement), (p:Fake_Statement) 
+           WHERE n.id = $query_id and p.query IS NULL and p.words is not null
+           WITH n, p, gds.similarity.cosine(n.embedding, p.embedding) AS cos_similarity,
+               size(apoc.coll.intersection(p.words , $query_words)) AS matching_words, 
+               size($query_words) as total_words
+           WITH n, p, 
+               round((cos_similarity + toFloat(matching_words) / toFloat(total_words) / 7), 2) as med_similarity,
+               cos_similarity, toFloat(matching_words) / toFloat(total_words) as added_similarity,
+               matching_words
+           WITH n, p,  med_similarity, cos_similarity, added_similarity, matching_words,
+               apoc.coll.max([added_similarity, med_similarity]) as similarity
+            RETURN p.id as id, ID(p) as intra_id, matching_words,
+               p.statement as statement, p.date as date, p.formatted_date as f_date,
+                p.embedding as embedding, p.url as url,
+               similarity, cos_similarity, added_similarity, p.words ORDER BY 
+               similarity DESC, f_date DESC LIMIT 50
+           '''
+        with self.driver.session() as session:
+            records, summary, keys = self.driver.execute_query(
+                query,
+                database_="neo4j",
+                query_id=query_id,
+                query_words=query_words
+            )
+            statements = [p.data() for p in records]
+        # if len(statements) < 10:
+        #     return self.get_top10_cosine_vectors(query_id)
+        return statements
+
+ # MATCH (n:Fake_Statement), (p:Fake_Statement)
+ #           WHERE n.id = 69951 and p.query IS NULL and p.words is not null
+ #           WITH n, p, gds.similarity.cosine(n.embedding, p.embedding) AS cos_similarity, size(apoc.coll.intersection(p.words , [ 'ukrain', 'evil'])) AS matching_words, size(['ukrain', 'evil']) as total_words
+ #           WITH n, p, round((cos_similarity + toFloat(matching_words) / toFloat(total_words) / 7), 2) as med_similarity, cos_similarity, toFloat(matching_words) / toFloat(total_words) as added_similarity, matching_words
+ #           WITH n, p,  med_similarity, cos_similarity, added_similarity, matching_words, apoc.coll.max([added_similarity, med_similarity]) as similarity
+ #           RETURN p.id as id, ID(p) as intra_id, matching_words,
+ #           p.statement as statement, p.date as date, p.formatted_date as f_date, similarity, cos_similarity, added_similarity, p.words ORDER BY
+ #           similarity DESC, f_date DESC LIMIT 50
+ #
 
     def get_statement_location(self, intra_id):
         query = '''
@@ -789,6 +888,26 @@ class NeoConnector:
                 return statements
 
         return ""
+
+    def get_statement_language(self, intra_id):
+        query = '''
+            USE neo4j
+            MATCH (p:Fake_Statement)-[:HAS_LANGUAGE]-(g:Language)
+            WHERE p.intra_id=$intra_id 
+            RETURN g;
+        '''
+        with self.driver.session() as session:
+            records, summary, keys = self.driver.execute_query(
+                query,
+                database_="neo4j",
+                intra_id=intra_id
+            )
+            statements = [g.data()["g"]["name"] for g in records]
+            if len(statements) > 0:
+                return statements
+
+        return ""
+
 
     def simple_delete(self, id):
         # print('simple_delete')
