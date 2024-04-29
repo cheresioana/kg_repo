@@ -15,7 +15,7 @@ import random
 from collections import Counter
 from flask import Flask, jsonify, request
 import json
-from flask_cors import CORS
+from flask_cors import CORS, cross_origin
 import requests
 from Neo4JConnector.NeoConnector import (NeoConnector)
 from ChatGPT.ChatGPTWrapper import ChatGPTWrapper
@@ -29,7 +29,9 @@ neo_aglo = NeoAlgorithms()
 connector = NeoConnector()
 chat = ChatGPTWrapper()
 search_engine = SearchEngine()
+
 CORS(app)
+app.config['CORS_HEADERS'] = 'Content-Type'
 
 #df = pd.read_csv('data/data2.csv')
 
@@ -88,6 +90,7 @@ def analyze2():
 
 
 @app.route('/load_more', methods=['POST'])
+@cross_origin()
 def load_more():
     data = request.get_json()
     logger.info(f"analyze2 {data}")
