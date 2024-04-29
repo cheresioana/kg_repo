@@ -12,7 +12,8 @@ from Neo4JConnector.NeoAlgorithms import NeoAlgorithms
 from Neo4JConnector.NeoConnector import NeoConnector
 from utils import clean_text, get_clean_text_tokens
 from constanst import AGGREGATOR_URL
-from  logs import logger
+from logs import logger
+
 
 class SearchEngine():
     def __init__(self):
@@ -22,14 +23,16 @@ class SearchEngine():
 
     def insert_query_elements(self, query, query_embedding):
         print(query)
-        response = requests.post(AGGREGATOR_URL, json={'statement': query})
-        if response.status_code == 200:
-            entities = response.json()
-            query_node = self.neo_connector.insert_search_statement(query, query_embedding)
-            print(entities)
-            self.neo_connector.insert_statement_entities(query_node.intra_id, entities)
-            return query_node, entities
-        return None, None
+        query_node = self.neo_connector.insert_search_statement(query, query_embedding)
+        # response = requests.post(AGGREGATOR_URL, json={'statement': query})
+        # if response.status_code == 200:
+        #     entities = response.json()
+        #
+        #     #print(entities)
+        #     #self.neo_connector.insert_statement_entities(query_node.intra_id, entities)
+        #     return query_node, entities
+        return query_node, {}
+        #return None, None
 
     def find_path_between_nodes(self, start, end):
         paths = self.neo_algo.find_dijkstra_path(start, end)
@@ -63,6 +66,7 @@ class SearchEngine():
                 previous_node = new_node
             index = index + 1
         return nodes, links
+
     def compute_paths(self, query_id, res_df):
         results = []
         for index, row in res_df.iterrows():
@@ -70,7 +74,7 @@ class SearchEngine():
             locations = self.neo_connector.get_statement_location(row["intra_id"])
             channels = self.neo_connector.get_statement_channel(row["intra_id"])
             result_node = Node(row["intra_id"], row["statement"],
-                                           row["id"], tag="statement_node")
+                               row["id"], tag="statement_node")
             results.append(ResultItem(0,
                                       row["intra_id"],
                                       query_id, row["statement"],
@@ -94,14 +98,11 @@ class SearchEngine():
         sorted_data = sorted(results, key=lambda x: x.weight)
         return sorted_data
 
-
-
     def find_results_old(self, query):
         start_time = time.time()
         clean_query = clean_text(query)
         query_embedding = self.embeddingWrapper.get_embedding(clean_query)
-        #print(query_embedding)
-
+        # print(query_embedding)
 
         '''statements = self.neo_connector.get_statements_vectors()
         df = pd.DataFrame(statements)
@@ -119,7 +120,6 @@ class SearchEngine():
         logger.info("statements")
         results = pd.DataFrame(statements)
 
-
         # print(results.columns)
         # print(results[["statement", "similarity"]])
         top_results = results[results['similarity'] > 0.87]
@@ -128,7 +128,7 @@ class SearchEngine():
         print(f"Basic parsing and datarame transf took {time.time() - start_time} seconds to run.")
         if query_node is not None:
             path_result = self.compute_paths(query_node.intra_id, results)
-            #path_result = []
+            # path_result = []
             show_nodes = []
             show_links = []
 
@@ -150,24 +150,23 @@ class SearchEngine():
 
         return None
 
-    def find_results(self, query):
+    def find_results(self, query, skip=0):
         start_time = time.time()
         clean_query = clean_text(query)
         query_embedding = self.embeddingWrapper.get_embedding(clean_query)
-        #print(query_embedding)
+        # print(query_embedding)
         keywords = get_clean_text_tokens(query)
         query_node, query_entities = self.insert_query_elements(query, query_embedding)
-        statements = self.neo_connector.get_mix_cosine_words(query_node.intra_id, keywords)
-        #statements = self.neo_connector.get_top_cosine_vectors(query_node.intra_id)
+        statements = self.neo_connector.get_mix_cosine_words(query_node.intra_id, keywords, skip)
+        # statements = self.neo_connector.get_top_cosine_vectors(query_node.intra_id)
         print(f"Retrieval took {time.time() - start_time} seconds to run.")
         logger.info("statements")
         results = pd.DataFrame(statements)
 
-
         # print(results.columns)
         # print(results[["statement", "similarity"]])
         top_results = results[results['similarity'] > 0.87]['intra_id']
-        if len(top_results) < 5:
+        if len(top_results) < 5 and skip == 0:
             top_results = results.head(5)['intra_id']
         top_results = top_results.values
         query_id = query_node.intra_id
@@ -180,12 +179,12 @@ class SearchEngine():
                 languages = self.neo_connector.get_statement_language(row["intra_id"])
                 if row['intra_id'] in top_results:
                     search_results.append(SearchResult(
-                                              row["intra_id"],
-                                              query_id, row["statement"],
-                                              selected=1,
-                                              date=row["date"],
-                                              channel=channels, location=locations,
-                                              url=row["url"], languages=languages))
+                        row["intra_id"],
+                        query_id, row["statement"],
+                        selected=1,
+                        date=row["date"],
+                        channel=channels, location=locations,
+                        url=row["url"], languages=languages))
                 else:
                     search_results.append(SearchResult(row["intra_id"],
                                                        query_id, row["statement"],
@@ -193,7 +192,7 @@ class SearchEngine():
                                                        channel=channels, location=locations,
                                                        url=row["url"], languages=languages))
 
-            #path_result = []
+            # path_result = []
             show_nodes = []
             show_links = []
 

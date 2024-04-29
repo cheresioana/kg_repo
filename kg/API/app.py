@@ -28,6 +28,7 @@ app = Flask(__name__)
 neo_aglo = NeoAlgorithms()
 connector = NeoConnector()
 chat = ChatGPTWrapper()
+search_engine = SearchEngine()
 CORS(app)
 
 #df = pd.read_csv('data/data2.csv')
@@ -71,9 +72,27 @@ def get_similar_kg(id):
 def analyze2():
     data = request.get_json()
     logger.info(f"analyze2 {data}")
-    search_engine = SearchEngine()
+
     start_time = time.time()
     keywords, show_links, show_nodes, path_result, origin_node = search_engine.find_results(data['statement'])
+    duration = time.time() - start_time
+    logger.info(f"The search took {duration} seconds to run.")
+    print(f"The search took {duration} seconds to run.")
+    json_response = {
+        'origin': [origin_node],
+        'keywords': keywords,
+        'all_results': path_result
+    }
+    json_str = json.dumps(json_response, cls=ComplexEncoder, indent=4)
+    return json_str
+
+
+@app.route('/load_more', methods=['POST'])
+def load_more():
+    data = request.get_json()
+    logger.info(f"analyze2 {data}")
+    start_time = time.time()
+    keywords, show_links, show_nodes, path_result, origin_node = search_engine.find_results(data['statement'], data['skip'])
     duration = time.time() - start_time
     logger.info(f"The search took {duration} seconds to run.")
     print(f"The search took {duration} seconds to run.")

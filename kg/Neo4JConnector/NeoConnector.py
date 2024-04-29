@@ -810,7 +810,7 @@ class NeoConnector:
             return self.get_top10_cosine_vectors(query_id)
         return statements
 
-    def get_mix_cosine_words(self, query_id, query_words):
+    def get_mix_cosine_words(self, query_id, query_words, skip):
         query = '''USE neo4j 
            MATCH (n:Fake_Statement), (p:Fake_Statement) 
            WHERE n.id = $query_id and p.query IS NULL and p.words is not null
@@ -827,14 +827,15 @@ class NeoConnector:
                p.statement as statement, p.date as date, p.formatted_date as f_date,
                 p.embedding as embedding, p.url as url,
                similarity, cos_similarity, added_similarity, p.words ORDER BY 
-               similarity DESC, f_date DESC LIMIT 50
+               similarity DESC, f_date DESC SKIP $skip LIMIT 50 
            '''
         with self.driver.session() as session:
             records, summary, keys = self.driver.execute_query(
                 query,
                 database_="neo4j",
                 query_id=query_id,
-                query_words=query_words
+                query_words=query_words,
+                skip=skip
             )
             statements = [p.data() for p in records]
         # if len(statements) < 10:
