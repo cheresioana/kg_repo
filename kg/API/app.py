@@ -111,7 +111,7 @@ def load_more():
         'all_results': path_result
     }
     json_str = json.dumps(json_response, cls=ComplexEncoder, indent=4)
-    return json_str
+    return json_str, 200, {'ContentType': 'application/json'}
 
 
 # @app.route('/node_info/<id>', methods=['GET'])
