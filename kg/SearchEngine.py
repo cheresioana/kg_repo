@@ -201,7 +201,7 @@ class SearchEngine():
             show_nodes.append(query_node)
             keywords = list(itertools.chain.from_iterable(query_entities.values()))
             print(f"Overall took {time.time() - start_time} seconds to run.")
-            print(json.dumps(search_results, cls=MyEncoder))
+            #print(json.dumps(search_results, cls=MyEncoder))
 
             return keywords, show_links, show_nodes, search_results, query_node
 

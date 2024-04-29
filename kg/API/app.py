@@ -31,10 +31,17 @@ chat = ChatGPTWrapper()
 search_engine = SearchEngine()
 
 CORS(app)
-app.config['CORS_HEADERS'] = 'Content-Type'
+# app.config['CORS_HEADERS'] = 'Content-Type'
 
 #df = pd.read_csv('data/data2.csv')
 
+@app.before_request
+def before_request():
+    headers = {'Access-Control-Allow-Origin': '*',
+               'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+               'Access-Control-Allow-Headers': 'Content-Type'}
+    if request.method.lower() == 'options':
+        return jsonify(headers), 200
 
 @app.route('/sample_kg', methods=['GET'])
 def get_sample_kg():
@@ -90,7 +97,6 @@ def analyze2():
 
 
 @app.route('/load_more', methods=['POST'])
-@cross_origin()
 def load_more():
     data = request.get_json()
     logger.info(f"analyze2 {data}")
