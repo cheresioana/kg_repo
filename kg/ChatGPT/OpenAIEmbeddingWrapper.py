@@ -13,7 +13,14 @@ class OpenAIEmbeddingWrapper:
     def __init__(self):
         openai.api_key = OPENAI_API_KEY
 
-    def init_embeddings_from_csv(self, file_name='data/data2.csv'):
+    def get_embedding_safe(self, x, engine):
+        try:
+            return get_embedding(x, engine=engine)
+        except Exception as e:
+            print(f"An exception occurred for input '{x}': {e}")
+            return ""  # or any default value you prefer
+
+    def init_embeddings_from_csv(self, file_name='data/data2.csv', to_name="data/all_data_with_embeddings2.csv"):
         df = pd.read_csv(file_name)
         embedding_model = "text-embedding-ada-002"
         df = df.dropna(subset=['statement'])
@@ -22,8 +29,8 @@ class OpenAIEmbeddingWrapper:
         print(df["combined_text"])
         df['clean_combined_text'] = df["combined_text"].apply(clean_text)
 
-        df["embedding"] = df['clean_combined_text'].apply(lambda x: get_embedding(x, engine=embedding_model))
-        df.to_csv("data/all_data_with_embeddings.csv")
+        df["embedding"] = df['clean_combined_text'].apply(lambda x: self.get_embedding_safe(x, engine=embedding_model))
+        df.to_csv(to_name)
 
     def search_vector_space_dataframe(self, df, query, n=3):
         clean_query = clean_text(query)

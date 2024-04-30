@@ -55,15 +55,17 @@ class NeoConnector:
     def close(self):
         self.driver.close()
 
-    def insert_statement(self, row):
+    def insert_statement(self, row, tokens=[]):
         INSERT_STATEMENT = """USE neo4j
             UNWIND $inputs AS row
-            MERGE (n:Fake_Statement {embedding: row.embedding, date: row.date, url:row.debunking_link}) 
-            SET n.statement = row.statement, n.id = ID(n), n.intra_id = ID(n)
+            MERGE (n:Fake_Statement {url:row.debunking_link}) 
+            SET n.statement = row.statement, n.id = ID(n), n.intra_id = ID(n), n.words=$tokens, n.date=row.date, 
+            n.formatted_date=apoc.date.format(apoc.date.parse(row.date, 'ms', 'dd.MM.yyyy'),'ms', 'yyyy.MM.dd'),
+            n.embedding = row.embedding
             RETURN n
         """
         with self.driver.session() as session:
-            records, summary, keys = self.driver.execute_query(INSERT_STATEMENT, inputs=row.to_dict())
+            records, summary, keys = self.driver.execute_query(INSERT_STATEMENT, inputs=row.to_dict(), tokens=tokens)
             if len(records) > 0:
                 record = records[0].data()['n']
                 return record['id']
@@ -108,7 +110,7 @@ class NeoConnector:
     def insert_location(self, doc_id, location):
         QUERY_ENTITIES = """USE neo4j
             MATCH (n:Fake_Statement {id: $doc_id})
-            MERGE (e:Location {location: $location})
+            MERGE (e:Location {location: $location, name: $location})
             MERGE (n)-[:HAS_LOCATION]->(e)
             """
         with self.driver.session() as session:

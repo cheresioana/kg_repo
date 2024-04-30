@@ -12,8 +12,8 @@ nltk.download('stopwords')
 
 
 def clean_text(my_text):
-    print("Clean text")
-    print(my_text)
+    #print("Clean text")
+    #print(my_text)
     my_text = my_text.lower()
     my_text = re.sub(r'[^a-z0-9 ]', '', my_text)
     # lowercasing all the text
@@ -25,7 +25,7 @@ def clean_text(my_text):
     tokens = [stemmer.stem(token) for token in tokens]
     # tokens = [token for token in tokens if len(token) > 2]
     final_text = ' '.join(tokens)
-    print(final_text)
+    #print(final_text)
     if len(final_text) < MAX_TOKENS:
         return final_text
     return final_text[:MAX_TOKENS]
@@ -45,7 +45,7 @@ def get_clean_text_tokens(my_text):
     tokens = [stemmer.stem(token) for token in tokens]
 
 
-    if len(tokens) < 10:
+    if len(tokens) < 15:
         return tokens
 
     nlp = spacy.load("en_core_web_sm")
@@ -54,4 +54,4 @@ def get_clean_text_tokens(my_text):
     keywords = [p.text for p in processed._.phrases]
     tokens = [stemmer.stem(t) for token in keywords for t in token.split() if t not in stop_words]
     tokens = list(set(tokens))
-    return tokens[:10]
+    return tokens[:15]
