@@ -900,8 +900,8 @@ def expand_node():
     print(data['current_results'])
     print(data['all_nodes_ids'])
 
-    nodes, links = search_engine.expand_node(data['node_id'], data['query_id'], data['current_results'])
-    nodes = [node for node in nodes if node.id not in data['all_nodes_ids'] ]
+    nodes, links = search_engine.expand_node(int(data['node_id']), int(data['query_id']), data['current_results'])
+    nodes = [node for node in nodes if node.id not in data['all_nodes_ids']]
     nodes_dict = [node.to_dict() for node in nodes]
     return json.dumps({
         'nodes': nodes_dict,
@@ -925,6 +925,8 @@ def analyze2():
         'all_results': path_result
     }
     json_str = json.dumps(json_response, cls=ComplexEncoder, indent=4)
+    with open("test.json", 'w') as f:
+        json.dump(json_response, f, cls=ComplexEncoder, indent=4)
     return json_str
 
 
