@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 import requests
 from neo4j import GraphDatabase, basic_auth
 
-from DataObject.SubGraphResult import Node
+from DataObject.SubGraphResult import Node, BigNode, FakeStatement, SimpleNode
 import sys
 import os
 
@@ -70,14 +70,15 @@ class NeoConnector:
                 record = records[0].data()['n']
                 return record['id']
 
-    def insert_search_statement(self, statement, query_embedding):
+    def insert_search_statement(self, statement, query_embedding, keywords):
         INSERT_STATEMENT = """USE neo4j
-            MERGE (n:Fake_Statement {statement: $input, embedding: $embedding}) 
+            MERGE (n:Fake_Statement {statement: $input, embedding: $embedding, words: $keywords}) 
             SET n.query = 1, n.id = ID(n), n.tag='query', n.intra_id = ID(n)
             RETURN n   
         """
         with self.driver.session() as session:
-            records, summary, keys = self.driver.execute_query(INSERT_STATEMENT, input=statement, embedding=query_embedding)
+            records, summary, keys = self.driver.execute_query(INSERT_STATEMENT, input=statement,
+                                                               embedding=query_embedding, keywords=keywords)
             if len(records) > 0:
                 record = records[0].data()['n']
                 return Node(record['intra_id'], record['statement'], record['id'], record['tag'])
@@ -674,6 +675,49 @@ class NeoConnector:
 
             return data
 
+    def get_subgraph(self, ids):
+        nodes = []
+        nodes_ids = []
+        links = []
+        for id in ids:
+            with self.driver.session() as session:
+                records, summary, keys = self.driver.execute_query(
+                    "USE neo4j "
+                    "MATCH (p:Fake_Statement)--(k) "
+                    "WHERE p.intra_id=$id "
+                    "return p, collect({node: k, type: labels(k)}) as n",
+                    database_="neo4j", id=int(id),
+                )
+                statements = [p.data() for p in records]
+                fs = statements[0]['p']
+                fs_id = fs['intra_id']
+                fs_node = BigNode('Fake_Statement', fs_id, 0,
+                            FakeStatement(fs['formatted_date'],
+                                          fs['intra_id'], fs['statement'],
+                                          fs['words'],
+                                          fs['url']))
+                nodes.append(fs_node)
+                nodes_ids.append(fs['intra_id'])
+                for e in statements[0]['n']:
+                    e_id = e['node']['intra_id']
+                    if e_id not in nodes_ids:
+                        nodes.append(
+                            BigNode(e['type'][0],e_id,1,
+                                    SimpleNode(e['node']['name'],e['type'][0],
+                                                  e_id))
+                        )
+                        fs_node.increase_connections()
+                        nodes_ids.append(e_id)
+                    else:
+                        for element in nodes:
+                            if element.id == e_id:
+                                element.increase_connections()
+                                break;
+                    links.append({'source': fs_id, 'target': e_id})
+        return nodes, links
+
+
+
     def get_similar(self, id):
         with self.driver.session() as session:
             records, summary, keys = self.driver.execute_query(
@@ -838,6 +882,51 @@ class NeoConnector:
                 query_id=query_id,
                 query_words=query_words,
                 skip=skip
+            )
+            statements = [p.data() for p in records]
+        return statements
+
+    def get_node(self, node_id):
+        query = '''USE neo4j 
+                 MATCH (n) 
+                 WHERE n.intra_id = $id
+                 return n, labels(n) as type
+                 '''
+        with self.driver.session() as session:
+           records, summary, keys = self.driver.execute_query(
+               query,
+               database_="neo4j",
+               id=node_id,
+           )
+           statements = [p.data() for p in records]
+        return statements
+
+    def get_mix_cosine_similar_node(self, query_id, like_node_id, other_results_ids):
+        query = '''USE neo4j 
+              MATCH (n:Fake_Statement), (p:Fake_Statement)--(g) 
+              WHERE n.id = $query_id and p.query IS NULL and not p.id in $other_ids and g.intra_id = $like_node_id
+              WITH n, p, gds.similarity.cosine(n.embedding, p.embedding) AS cos_similarity,
+                  size(apoc.coll.intersection(p.words , n.words)) AS matching_words, 
+                  size(n.words) as total_words
+              WITH n, p, 
+                  round((cos_similarity + toFloat(matching_words) / toFloat(total_words) / 7), 2) as med_similarity,
+                  cos_similarity, toFloat(matching_words) / toFloat(total_words) as added_similarity,
+                  matching_words
+              WITH n, p,  med_similarity, cos_similarity, added_similarity, matching_words,
+                  apoc.coll.max([added_similarity, med_similarity]) as similarity
+               RETURN p.id as id, ID(p) as intra_id, matching_words,
+                  p.statement as statement, p.date as date, p.formatted_date as f_date,
+                   p.embedding as embedding, p.url as url,
+                  similarity, cos_similarity, added_similarity, p.words ORDER BY 
+                  similarity DESC, f_date DESC LIMIT 3 
+              '''
+        with self.driver.session() as session:
+            records, summary, keys = self.driver.execute_query(
+                query,
+                database_="neo4j",
+                query_id=query_id,
+                like_node_id=like_node_id,
+                other_ids=other_results_ids
             )
             statements = [p.data() for p in records]
         # if len(statements) < 10:

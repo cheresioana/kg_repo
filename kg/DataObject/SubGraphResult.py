@@ -33,6 +33,64 @@ class Node:
     def __hash__(self):
         return hash(self.intra_id)
 
+class FakeStatement:
+    def __init__(self, date, intra_id, statement, words, url):
+        self.type = "Fake_Statement"
+        self.date = date
+        self.intra_id = intra_id
+        self.statement = statement
+        self.words = words
+        self.id = intra_id
+        self.url = url
+
+    def to_dict(self):
+        return {
+            "type": self.type,
+            "date": self.date,
+            "intra_id": self.intra_id,
+            "statement": self.statement,
+            "words": self.words,
+            "id": self.id,
+            "url": self.url
+        }
+
+class SimpleNode:
+    def __init__(self, name, type, id):
+        self.type = type
+        self.name = name
+        self.id = id
+        self.intra_id = id
+
+    def to_dict(self):
+        return {
+            "type": self.type,
+            "name": self.name,
+            "id": self.id,
+            "intra_id": self.intra_id
+        }
+
+class BigNode:
+    def __init__(self, type, id, connections, node):
+        self.id = id
+        self.connections = connections
+        if type not in ['Fake_Statement', 'Language', 'Channel', 'Country', 'Entity', 'Location']:
+            raise ValueError(f"Invalid type: {type} for BigNode ")
+        self.type = type
+        if not isinstance(node, (FakeStatement, SimpleNode)):
+            raise TypeError("Node must be an instance of FakeStatement or SimpleNode")
+        self.node = node
+
+    def increase_connections(self):
+        self.connections = self.connections + 1
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "connections": self.connections,
+            "type": self.type,
+            "node": self.node.to_dict()
+        }
+
 
 class Link:
     target: int

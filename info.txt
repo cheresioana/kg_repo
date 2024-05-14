@@ -1,0 +1,53 @@
+docker run --interactive --tty --rm \
+    --volume=./persistent_data/data:/data:/data \
+    --volume=./persistent_data/logs:/logs \
+    neo4j/neo4j-admin:5.19.0 \
+neo4j-admin database load neo4j --from-path=/data/neo4j.dump
+
+
+ neo4j:
+    image: neo4j:latest
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      - NEO4J_AUTH=neo4j/ioana123
+      - NEO4J_apoc_export_file_enabled=true
+      - NEO4J_apoc_import_file_enabled=true
+      - NEO4JLABS_PLUGINS=["apoc", "graph-data-science"]
+    volumes:
+      - ./persistent_data/data:/data
+      - ./persistent_data/logs:/logs
+
+
+
+docker run --interactive --tty --rm     --volume=./persistent_data/data:/data     --volume=./persistent_data/logs:/logs     neo4j:latest neo4j-admin database load neo4j --from-path=/data/dump --verbose
+
+
+
+neo4j-admin database load --expand-commands system --from-path=/backups && neo4j-admin database load --expand-commands neo4j --from-path=/backups
+
+
+Step 1: make a local dump
+./bin/neo4j-admin database dump neo4j --to-path=/Users/ioana/work/backup2
+
+
+Step 2:
+remove folders from the server which have the database
+
+
+Step 3:
+docker run --interactive --tty --rm \
+   --env NEO4J_AUTH=neo4j/ioana123 \
+   --env NEO4J_apoc_export_file_enabled=true \
+   --env NEO4J_apoc_import_file_enabled=true \
+   --volume=./persistent_data/data:/data \
+   --volume=./persistent_data/logs:/logs \
+   neo4j:latest \
+neo4j-admin database load neo4j --from-path=/data/backup2
+
+Step 4:
+docker-compose up
+
+
+./bin/neo4j-admin database dump neo4j --to-path=/Users/ioana/work/backup

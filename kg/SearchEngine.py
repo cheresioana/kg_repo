@@ -21,9 +21,27 @@ class SearchEngine():
         self.neo_connector = NeoConnector()
         self.neo_algo = NeoAlgorithms()
 
-    def insert_query_elements(self, query, query_embedding):
+    def get_nodes(self, ids):
+        nodes, links = self.neo_connector.get_subgraph(ids)
+        return nodes, links
+
+    def expand_node(self, node_id, query_id, other_results):
+        like_node = self.neo_connector.get_node(node_id)
+        #print(like_node)
+        like_node = like_node[0]
+        if like_node['type'][0] != 'Fake_Statement':
+            statements = self.neo_connector.get_mix_cosine_similar_node(query_id, node_id, other_results)
+            #print(statements)
+            if len(statements) == 0:
+                return [], []
+            ids = [statement['id'] for statement in statements]
+            nodes, links = self.neo_connector.get_subgraph(ids)
+            return nodes, links
+        return [], []
+
+    def insert_query_elements(self, query, query_embedding, keywords):
         print(query)
-        query_node = self.neo_connector.insert_search_statement(query, query_embedding)
+        query_node = self.neo_connector.insert_search_statement(query, query_embedding, keywords)
         # response = requests.post(AGGREGATOR_URL, json={'statement': query})
         # if response.status_code == 200:
         #     entities = response.json()
@@ -98,57 +116,6 @@ class SearchEngine():
         sorted_data = sorted(results, key=lambda x: x.weight)
         return sorted_data
 
-    def find_results_old(self, query):
-        start_time = time.time()
-        clean_query = clean_text(query)
-        query_embedding = self.embeddingWrapper.get_embedding(clean_query)
-        # print(query_embedding)
-
-        '''statements = self.neo_connector.get_statements_vectors()
-        df = pd.DataFrame(statements)
-        df["similarity"] = df['embedding'].apply(lambda x: cosine_similarity(x, query_embedding))
-        results = (
-            df.sort_values("similarity", ascending=False)
-            .head(10)
-        )
-
-        print(results)'''
-        query_node, query_entities = self.insert_query_elements(query, query_embedding)
-
-        statements = self.neo_connector.get_top_cosine_vectors(query_node.intra_id)
-        print(f"Retrieval took {time.time() - start_time} seconds to run.")
-        logger.info("statements")
-        results = pd.DataFrame(statements)
-
-        # print(results.columns)
-        # print(results[["statement", "similarity"]])
-        top_results = results[results['similarity'] > 0.87]
-        if len(top_results) < 3:
-            top_results = results.head(3)
-        print(f"Basic parsing and datarame transf took {time.time() - start_time} seconds to run.")
-        if query_node is not None:
-            path_result = self.compute_paths(query_node.intra_id, results)
-            # path_result = []
-            show_nodes = []
-            show_links = []
-
-            # for index, row in top_results.head(3).iterrows():
-            #     filtered_items = [item for item in path_result if item.intra_id == row["intra_id"]]
-            #     for filtered_item in filtered_items:
-            #         filtered_item.selected = 1
-            #         show_nodes.extend(filtered_item.nodes)
-            #         show_links.extend(filtered_item.links)
-
-            show_links = list(set(show_links))
-            show_nodes = (list(set(show_nodes)))
-            show_nodes.append(query_node)
-            keywords = list(itertools.chain.from_iterable(query_entities.values()))
-            print(f"Overall took {time.time() - start_time} seconds to run.")
-            print(json.dumps(path_result), )
-            print(json.dumps(path_result, cls=ComplexEncoder))
-            return keywords, show_links, show_nodes, path_result, query_node
-
-        return None
 
     def find_results(self, query, skip=0):
         start_time = time.time()
@@ -156,7 +123,7 @@ class SearchEngine():
         query_embedding = self.embeddingWrapper.get_embedding(clean_query)
         # print(query_embedding)
         keywords = get_clean_text_tokens(query)
-        query_node, query_entities = self.insert_query_elements(query, query_embedding)
+        query_node, query_entities = self.insert_query_elements(query, query_embedding, keywords)
         statements = self.neo_connector.get_mix_cosine_words(query_node.intra_id, keywords, skip)
         # statements = self.neo_connector.get_top_cosine_vectors(query_node.intra_id)
         print(f"Retrieval took {time.time() - start_time} seconds to run.")
